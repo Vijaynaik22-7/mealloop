@@ -1,0 +1,43 @@
+# CI pipeline: runs on every pull request to main and every push to main.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    # The job name "test" is what you select as the required check in branch protection.
+    name: test
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Download the code onto the runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Install Python 3.11, with pip downloads cached to speed up later runs
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 4. Lint: fails the job if flake8 finds style problems
+      - name: Lint with flake8
+        run: flake8
+
+      # 5. Run all tests in tests/ (every member's test_<module>.py)
+      - name: Run tests
+        run: pytest
+
+      # 6. Build the Docker image. Skipped until the Dockerfile exists (Step 3).
+      - name: Build Docker image
+        if: ${{ hashFiles('Dockerfile') != '' }}
+        run: docker build -t mealloop:ci .

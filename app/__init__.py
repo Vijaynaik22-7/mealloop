@@ -67,4 +67,9 @@ def create_app(test_config=None):
     def home():
         return render_template("home.html")  # created in step 5
 
+    @app.route("/health")
+    def health():
+        """Tiny endpoint for CI tests and the Docker healthcheck."""
+        return {"status": "ok"}
+
     return app

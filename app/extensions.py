@@ -1,0 +1,7 @@
+"""Shared extension objects. Created here (not in __init__) to avoid circular imports."""
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
+
+db = SQLAlchemy()
+login_manager = LoginManager()
+login_manager.login_view = "auth.login"  # Member 5 will create this route

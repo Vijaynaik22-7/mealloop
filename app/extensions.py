@@ -5,3 +5,5 @@ from flask_login import LoginManager
 db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"  # Member 5 will create this route
+login_manager.login_message = "Please log in to continue."
+login_manager.login_message_category = "warning"

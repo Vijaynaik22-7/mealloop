@@ -1,40 +1,70 @@
-"""Application factory. Every blueprint gets registered in create_app()."""
+"""MealLoop application factory."""
+import importlib
 import os
 
-from flask import Flask, jsonify
+from flask import Flask, render_template
 
 from app.extensions import db, login_manager
+
+# Every module must expose a Blueprint named `bp` in its routes.py
+BLUEPRINT_MODULES = [
+    "app.auth.routes",
+    "app.providers.routes",
+    "app.recipients.routes",
+    "app.admin.routes",
+    "app.analytics.routes",
+]
+
+
+def register_blueprints(app):
+    """Register each module's blueprint.
+
+    If a teammate has not written their routes.py yet (file missing
+    or no `bp` inside), we skip it so the app still runs.
+    """
+    for module_name in BLUEPRINT_MODULES:
+        try:
+            module = importlib.import_module(module_name)
+        except ModuleNotFoundError as err:
+            # Only ignore "this module does not exist yet".
+            # Real errors (e.g. a missing library) must still show up.
+            missing = err.name or ""
+            if module_name == missing or module_name.startswith(
+                    missing + "."):
+                print(f"[MealLoop] skipped {module_name} (not found)")
+                continue
+            raise
+        bp = getattr(module, "bp", None)
+        if bp is None:
+            print(f"[MealLoop] skipped {module_name} (no `bp` yet)")
+            continue
+        app.register_blueprint(bp)
 
 
 def create_app(test_config=None):
     app = Flask(__name__)
 
-    # Default configuration (SECRET_KEY should come from the environment in production)
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-        "DATABASE_URL", "sqlite:///mealloop.db"  # stored in the instance/ folder
+    app.config.from_mapping(
+        SECRET_KEY=os.environ.get("SECRET_KEY", "dev-secret-change-me"),
+        # Relative sqlite path is stored in the instance/ folder
+        SQLALCHEMY_DATABASE_URI=os.environ.get(
+            "DATABASE_URL", "sqlite:///mealloop.db"),
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
     )
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-    # Tests pass their own config (e.g. an in-memory database)
     if test_config:
-        app.config.update(test_config)
+        app.config.update(test_config)  # tests override settings here
 
-    # Make sure the instance/ folder exists (SQLite file lives there)
-    os.makedirs(app.instance_path, exist_ok=True)
-
-    # Connect extensions to this app
     db.init_app(app)
     login_manager.init_app(app)
 
-    # ---- Register blueprints here as each member finishes theirs ----
-    # from app.auth import bp as auth_bp
-    # app.register_blueprint(auth_bp)
-    # (same pattern for providers, recipients, admin, matching, analytics)
+    with app.app_context():
+        from app import models  # noqa: F401  (so tables are known)
+        db.create_all()
 
-    @app.route("/health")
-    def health():
-        """Used by Docker healthcheck, CI and the deploy host."""
-        return jsonify({"status": "ok"})
+    register_blueprints(app)
+
+    @app.route("/")
+    def home():
+        return render_template("home.html")  # created in step 5
 
     return app

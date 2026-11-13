@@ -1,0 +1,18 @@
+# Keep the image small and free of secrets and junk
+.git
+.github
+venv/
+.venv/
+testenv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+instance/
+*.db
+.env
+.vscode/
+.idea/
+tests/
+README.md

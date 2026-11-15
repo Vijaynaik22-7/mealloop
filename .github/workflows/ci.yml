@@ -1,3 +1,6 @@
+# CI/CD pipeline for MealLoop.
+# - On pull requests: test, coverage and integration run (deploy is skipped).
+# - On push to main: the same jobs run, then deploy runs only if all of them pass.
 name: CI
 
 on:
@@ -7,6 +10,10 @@ on:
     branches: [main]
 
 jobs:
+  # ---------------------------------------------------------------
+  # Job 1: lint + unit tests
+  # The job name "test" is a required check in branch protection.
+  # ---------------------------------------------------------------
   test:
     name: test
     runs-on: ubuntu-latest
@@ -29,14 +36,90 @@ jobs:
       - name: Run tests
         run: pytest
 
+  # ---------------------------------------------------------------
+  # Job 2: tests with coverage, report saved as a downloadable artifact
+  # ---------------------------------------------------------------
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Runs all tests and writes terminal, HTML and XML coverage reports
+      - name: Run pytest with coverage
+        run: pytest --cov=app --cov-report=term-missing --cov-report=html --cov-report=xml
+
+      # Saves the report so it can be downloaded from the run page
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            htmlcov/
+            coverage.xml
+
+  # ---------------------------------------------------------------
+  # Job 3: build the image, start the container, check /health
+  # ---------------------------------------------------------------
+  integration:
+    name: integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Build Docker image
-        if: ${{ hashFiles('Dockerfile') != '' }}
         run: docker build -t mealloop:ci .
 
+      - name: Start container
+        run: docker run -d --name mealloop-ci -p 5000:5000 mealloop:ci
+
+      # Wait up to ~60s for Docker's own HEALTHCHECK to report "healthy"
+      - name: Wait for healthcheck
+        run: |
+          for i in $(seq 1 30); do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' mealloop-ci)
+            echo "Attempt $i: $STATUS"
+            if [ "$STATUS" = "healthy" ]; then exit 0; fi
+            sleep 2
+          done
+          echo "Container never became healthy"
+          docker logs mealloop-ci
+          exit 1
+
+      # Fail the job unless /health returns HTTP 200
+      - name: Curl /health
+        run: |
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health)
+          echo "HTTP status: $CODE"
+          [ "$CODE" = "200" ]
+
+      # Show logs if anything above failed
+      - name: Show logs on failure
+        if: failure()
+        run: docker logs mealloop-ci
+
+      # always() stops the container even if an earlier step failed
+      - name: Stop container
+        if: always()
+        run: docker rm -f mealloop-ci
+
+  # ---------------------------------------------------------------
+  # Job 4: deploy (only on push to main, only after everything passes)
+  # ---------------------------------------------------------------
   deploy:
     name: deploy
-    # Only after tests pass, and only for pushes to main (never for PRs)
-    needs: test
+    needs: [test, coverage, integration]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -44,7 +127,7 @@ jobs:
       packages: write          # lets GITHUB_TOKEN push to ghcr.io
     environment:
       name: production
-      # Edit this after you create the Render service (shows a live link on the run page)
+      # Replace with your real Render URL (shows a "View deployment" link)
       url: https://mealloop.onrender.com
 
     steps:

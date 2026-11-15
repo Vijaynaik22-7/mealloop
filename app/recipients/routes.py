@@ -5,6 +5,7 @@ Step 2: browse available donations (verified recipients only).
 Step 3: request a donation.
 Step 4: provider accepts or rejects a request.
 Step 5: mark a request as collected.
+Step 6: recipient dashboard.
 """
 from datetime import datetime
 
@@ -31,7 +32,7 @@ bp = Blueprint("recipients", __name__, url_prefix="/recipient")
 
 # Where people land after an action
 PROVIDER_DASHBOARD = "/provider/dashboard"    # Member 1's page
-RECIPIENT_DASHBOARD = "/recipient/dashboard"  # built in step 6
+RECIPIENT_DASHBOARD = "/recipient/dashboard"  # our dashboard (step 6)
 
 
 def validate_profile(form):
@@ -186,7 +187,7 @@ def request_donation(donation_id):
     db.session.commit()
 
     flash("Request sent! The provider will accept or reject it.", "success")
-    return redirect(url_for("recipients.browse_donations"))
+    return redirect(url_for("recipients.dashboard"))
 
 
 def _get_own_request(request_id):
@@ -308,3 +309,32 @@ def collect_request(request_id):
 
     flash("Marked as collected. Thank you!", "success")
     return redirect(back)
+
+
+@bp.route("/dashboard")
+@role_required("recipient")
+def dashboard():
+    """Show all of this recipient's requests and their statuses."""
+    # One query: each of my requests with its donation and its provider
+    rows = (
+        db.session.query(DonationRequest, Donation, User)
+        .join(Donation, DonationRequest.donation_id == Donation.id)
+        .join(User, Donation.provider_id == User.id)
+        .filter(DonationRequest.recipient_id == current_user.id)
+        .order_by(DonationRequest.id.desc())  # newest first
+        .all()
+    )
+
+    counts = {"pending": 0, "accepted": 0, "collected": 0, "rejected": 0}
+    items = []
+    for donation_request, donation, provider in rows:
+        status = donation_request.status
+        counts[status] = counts.get(status, 0) + 1
+        items.append(
+            {"req": donation_request, "donation": donation,
+             "provider": provider}
+        )
+
+    return render_template(
+        "recipients/dashboard.html", items=items, counts=counts
+    )

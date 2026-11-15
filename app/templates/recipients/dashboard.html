@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}My Requests{% endblock %}
+
+{% block content %}
+{# Badge colour for each status #}
+{% set badge = {
+  "pending": "bg-warning text-dark",
+  "accepted": "bg-success",
+  "rejected": "bg-danger",
+  "collected": "bg-secondary"
+} %}
+
+<div class="container my-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">My Requests</h2>
+    <div>
+      <a href="{{ url_for('recipients.browse_donations') }}"
+         class="btn btn-outline-primary btn-sm">Browse donations</a>
+      <a href="{{ url_for('recipients.edit_profile') }}"
+         class="btn btn-outline-secondary btn-sm">Edit profile</a>
+    </div>
+  </div>
+
+  {% if not current_user.is_verified %}
+    <div class="alert alert-warning">
+      Your account is pending approval by an admin. You can request
+      donations once you are verified.
+    </div>
+  {% endif %}
+
+  {# Summary cards #}
+  <div class="row g-2 mb-4">
+    {% for s in ["pending", "accepted", "collected", "rejected"] %}
+      <div class="col-6 col-md-3">
+        <div class="card text-center">
+          <div class="card-body py-2">
+            <div class="fs-4 fw-bold">{{ counts[s] }}</div>
+            <span class="badge {{ badge[s] }}">{{ s|capitalize }}</span>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if not items %}
+    <div class="alert alert-info">
+      You have not made any requests yet.
+      <a href="{{ url_for('recipients.browse_donations') }}">
+        Browse available donations</a>.
+    </div>
+  {% else %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Food</th>
+            <th>From</th>
+            <th>Pickup at</th>
+            <th>People</th>
+            <th>Status</th>
+            <th>Requested</th>
+            <th>Collected</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+            {% set r = item.req %}
+            {% set d = item.donation %}
+            <tr>
+              <td>{{ d.food_name }}
+                <small class="text-muted">
+                  ({{ d.quantity }} {{ d.unit }})</small></td>
+              <td>{{ item.provider.name }}</td>
+              <td>{{ d.pickup_location }}</td>
+              <td>{{ r.people_to_serve }}</td>
+              <td>
+                <span class="badge {{ badge.get(r.status, 'bg-light text-dark') }}">
+                  {{ r.status|capitalize }}
+                </span>
+              </td>
+              <td>
+                {{ r.created_at.strftime("%d %b, %I:%M %p")
+                   if r.created_at else "-" }}
+              </td>
+              <td>
+                {{ r.collected_at.strftime("%d %b, %I:%M %p")
+                   if r.collected_at else "-" }}
+              </td>
+              <td>
+                {# Only an accepted request can be marked as collected #}
+                {% if r.status == "accepted" %}
+                  <form method="post"
+                        action="{{ url_for('recipients.collect_request',
+                                           request_id=r.id) }}"
+                        onsubmit="return confirm('Mark this food as collected?');">
+                    <button type="submit" class="btn btn-sm btn-success">
+                      Mark collected
+                    </button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

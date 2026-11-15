@@ -41,10 +41,23 @@
                 <strong>Prepared:</strong>
                 {{ d.prepared_at.strftime("%d %b, %I:%M %p") }}
               </p>
-              <p class="mb-0 text-danger">
+              <p class="mb-3 text-danger">
                 <strong>Expires:</strong>
                 {{ d.expiry_time.strftime("%d %b, %I:%M %p") }}
               </p>
+
+              {# Request form: how many people will you serve? #}
+              <form method="post" class="d-flex gap-2"
+                    action="{{ url_for('recipients.request_donation',
+                                       donation_id=d.id) }}">
+                <input type="number" name="people_to_serve"
+                       class="form-control" min="1" step="1" required
+                       {% if current_user.capacity_people %}
+                       max="{{ current_user.capacity_people }}"
+                       {% endif %}
+                       placeholder="People to serve">
+                <button type="submit" class="btn btn-primary">Request</button>
+              </form>
             </div>
           </div>
         </div>

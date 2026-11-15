@@ -2,15 +2,19 @@
 
 Step 1: recipient profile edit page.
 Step 2: browse available donations (verified recipients only).
+Step 3: request a donation.
+Step 4: provider accepts or rejects a request.
 """
 from datetime import datetime
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint, abort, flash, redirect, render_template, request, url_for,
+)
 from flask_login import current_user
 
 from app.auth.utils import role_required
 from app.extensions import db
-from app.models import Donation, User
+from app.models import Donation, DonationRequest, User
 
 # Member 3 writes this function. Until it exists, use a stub that
 # returns 0, so the page still works (all donations tie on score).
@@ -23,6 +27,9 @@ except ImportError:
 # create_app looks for a Blueprint named `bp` in this file.
 # url_prefix means every route below starts with /recipient
 bp = Blueprint("recipients", __name__, url_prefix="/recipient")
+
+# Member 1's page, where providers land after accepting/rejecting
+PROVIDER_DASHBOARD = "/provider/dashboard"
 
 
 def validate_profile(form):
@@ -126,3 +133,134 @@ def browse_donations():
     return render_template(
         "recipients/donations.html", verified=True, items=items
     )
+
+
+@bp.route("/donations/<int:donation_id>/request", methods=["POST"])
+@role_required("recipient")
+def request_donation(donation_id):
+    """Create a pending request for a donation."""
+    # Only verified NGOs may request food
+    if not current_user.is_verified:
+        abort(403)
+
+    donation = db.session.get(Donation, donation_id)
+    if donation is None:
+        abort(404)
+
+    # Someone else may have requested it first, or it may have expired
+    now = datetime.now()
+    if donation.status != "available" or donation.expiry_time <= now:
+        flash("Sorry, this donation is no longer available.", "warning")
+        return redirect(url_for("recipients.browse_donations"))
+
+    # people_to_serve must be a whole number from 1 up to our capacity
+    try:
+        people = int(request.form.get("people_to_serve", ""))
+    except ValueError:
+        people = 0
+    if people < 1:
+        flash("Enter how many people you will serve (at least 1).", "danger")
+        return redirect(url_for("recipients.browse_donations"))
+    capacity = current_user.capacity_people
+    if capacity and people > capacity:
+        flash(
+            f"You can serve at most {capacity} people (your capacity).",
+            "danger",
+        )
+        return redirect(url_for("recipients.browse_donations"))
+
+    recipient = current_user._get_current_object()
+    score = calculate_priority_score(donation, recipient, now=now)
+
+    new_request = DonationRequest(
+        donation_id=donation.id,
+        recipient_id=recipient.id,
+        people_to_serve=people,
+        status="pending",
+        priority_score=float(score),
+    )
+    donation.status = "requested"  # takes it off the browse list
+    db.session.add(new_request)
+    db.session.commit()
+
+    flash("Request sent! The provider will accept or reject it.", "success")
+    return redirect(url_for("recipients.browse_donations"))
+
+
+def _get_own_request(request_id):
+    """Load a request that belongs to the logged-in provider's donation.
+
+    Stops with 404 if it does not exist, or 403 if the donation belongs
+    to a different provider. Returns (donation_request, donation).
+    """
+    donation_request = db.session.get(DonationRequest, request_id)
+    if donation_request is None:
+        abort(404)
+    donation = db.session.get(Donation, donation_request.donation_id)
+    if donation is None:
+        abort(404)
+    if donation.provider_id != current_user.id:
+        abort(403)
+    return donation_request, donation
+
+
+def _other_pending(donation_request):
+    """Query: the OTHER pending requests for the same donation."""
+    return (
+        db.session.query(DonationRequest)
+        .filter(DonationRequest.donation_id == donation_request.donation_id)
+        .filter(DonationRequest.id != donation_request.id)
+        .filter(DonationRequest.status == "pending")
+    )
+
+
+@bp.route("/requests/<int:request_id>/accept", methods=["POST"])
+@role_required("provider")
+def accept_request(request_id):
+    """Provider accepts a request: this NGO gets the food."""
+    donation_request, donation = _get_own_request(request_id)
+
+    if donation_request.status != "pending":
+        flash("This request was already decided.", "warning")
+        return redirect(PROVIDER_DASHBOARD)
+    if donation.expiry_time <= datetime.now():
+        flash("This donation has expired, so it cannot be accepted.",
+              "warning")
+        return redirect(PROVIDER_DASHBOARD)
+
+    donation_request.status = "accepted"
+    donation.status = "accepted"
+
+    # Only one NGO gets the food, so reject all other pending requests
+    _other_pending(donation_request).update(
+        {"status": "rejected"}, synchronize_session=False
+    )
+    db.session.commit()
+
+    flash("Request accepted.", "success")
+    return redirect(PROVIDER_DASHBOARD)
+
+
+@bp.route("/requests/<int:request_id>/reject", methods=["POST"])
+@role_required("provider")
+def reject_request(request_id):
+    """Provider rejects a request; the food may open up again."""
+    donation_request, donation = _get_own_request(request_id)
+
+    if donation_request.status != "pending":
+        flash("This request was already decided.", "warning")
+        return redirect(PROVIDER_DASHBOARD)
+
+    donation_request.status = "rejected"
+
+    # If nobody else is waiting, put the food back on the browse list
+    if _other_pending(donation_request).count() == 0:
+        if donation.status == "requested":
+            if donation.expiry_time > datetime.now():
+                donation.status = "available"
+            else:
+                donation.status = "expired"
+    db.session.commit()
+
+    flash("Request rejected.", "success")
+    return redirect(PROVIDER_DASHBOARD)

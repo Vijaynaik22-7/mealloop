@@ -1,4 +1,8 @@
-# mealloop
+# MealLoop 🍽️
+
+[![CI](https://github.com/Vijaynaik22-7/mealloop/actions/workflows/ci.yml/badge.svg)](https://github.com/Vijaynaik22-7/mealloop/actions/workflows/ci.yml)
+
+**Live app:** https://mealloop-latest.onrender.com
 # MealLoop 🍽️
 
 A smart food rescue platform. Food providers (canteens, hostels, restaurants, events)
@@ -38,6 +42,41 @@ pytest
 See the "Branching convention" in this README's `CONTRIBUTING` section (below, to be added).
 (Short version: branch `feature/<module>`, small PRs, pull `main` daily.)
 ## Contributing
+
+## How CI/CD works in MealLoop
+
+**CI (Continuous Integration)** checks every change automatically, before it reaches `main`.
+**CD (Continuous Deployment)** ships `main` to the live site automatically.
+
+```text
+Developer pushes a branch ──> opens Pull Request into main
+                                   │
+                    GitHub Actions runs 3 jobs in parallel:
+                    ├─ test         flake8 lint + pytest
+                    ├─ coverage     pytest --cov, report saved as an artifact
+                    └─ integration  build Docker image, start container,
+                                    wait for healthcheck, curl /health (must be 200)
+                                   │
+              All green + 1 teammate approval ──> Merge allowed
+                                   │
+                          Merge = push to main
+                                   │
+                    deploy job (only on main, only if all 3 passed):
+                    1. Log in to ghcr.io with GITHUB_TOKEN
+                    2. Build image, push tags :<commit-sha> and :latest
+                    3. Call the Render deploy hook ──> live site updates
+```
+
+| Piece | Tool | Purpose |
+|---|---|---|
+| Version control | Git + GitHub | Branches, pull requests, review |
+| Branch protection | GitHub settings | No direct pushes; needs approval + green checks |
+| Quality gate | flake8, pytest, pytest-cov | Style and correctness |
+| Packaging | Docker | Same image runs on every laptop and on the server |
+| Registry | ghcr.io | Stores versioned images |
+| Hosting | Render (free) | Runs the container at a public URL |
+
+**Why it matters:** broken code cannot reach `main`, and every merge goes live in minutes with no manual steps.
 
 **Branches**
 - `main` is always working and demo-ready. Nobody pushes to it directly.

@@ -4,13 +4,14 @@ Step 1: recipient profile edit page.
 Step 2: browse available donations (verified recipients only).
 Step 3: request a donation.
 Step 4: provider accepts or rejects a request.
+Step 5: mark a request as collected.
 """
 from datetime import datetime
 
 from flask import (
     Blueprint, abort, flash, redirect, render_template, request, url_for,
 )
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 from app.auth.utils import role_required
 from app.extensions import db
@@ -28,8 +29,9 @@ except ImportError:
 # url_prefix means every route below starts with /recipient
 bp = Blueprint("recipients", __name__, url_prefix="/recipient")
 
-# Member 1's page, where providers land after accepting/rejecting
-PROVIDER_DASHBOARD = "/provider/dashboard"
+# Where people land after an action
+PROVIDER_DASHBOARD = "/provider/dashboard"    # Member 1's page
+RECIPIENT_DASHBOARD = "/recipient/dashboard"  # built in step 6
 
 
 def validate_profile(form):
@@ -264,3 +266,45 @@ def reject_request(request_id):
 
     flash("Request rejected.", "success")
     return redirect(PROVIDER_DASHBOARD)
+
+
+@bp.route("/requests/<int:request_id>/collect", methods=["POST"])
+@login_required
+def collect_request(request_id):
+    """Mark an accepted request as collected.
+
+    Allowed for the NGO that made the request, or for the provider who
+    owns the donation.
+    """
+    donation_request = db.session.get(DonationRequest, request_id)
+    if donation_request is None:
+        abort(404)
+    donation = db.session.get(Donation, donation_request.donation_id)
+    if donation is None:
+        abort(404)
+
+    # Work out who is calling
+    owns_request = donation_request.recipient_id == current_user.id
+    owns_donation = donation.provider_id == current_user.id
+    is_recipient = current_user.role == "recipient" and owns_request
+    is_provider = current_user.role == "provider" and owns_donation
+    if not (is_recipient or is_provider):
+        abort(403)
+
+    back = RECIPIENT_DASHBOARD if is_recipient else PROVIDER_DASHBOARD
+
+    if donation_request.status == "collected":
+        flash("This was already marked as collected.", "info")
+        return redirect(back)
+    if donation_request.status != "accepted":
+        flash("Only accepted requests can be marked as collected.",
+              "warning")
+        return redirect(back)
+
+    donation_request.status = "collected"
+    donation_request.collected_at = datetime.now()
+    donation.status = "collected"
+    db.session.commit()
+
+    flash("Marked as collected. Thank you!", "success")
+    return redirect(back)

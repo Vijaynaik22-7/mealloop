@@ -5,7 +5,7 @@ import pytest
 
 from app import create_app
 from app.extensions import db
-from app.models import User, Donation
+from app.models import User, Donation, DonationRequest
 
 
 @pytest.fixture
@@ -264,3 +264,73 @@ def test_cannot_delete_non_available_donation(
         donation = db.session.get(Donation, donation_id)
 
         assert donation is not None
+
+
+def test_provider_can_view_own_donation_requests(
+    client, app, provider
+):
+    with app.app_context():
+        recipient = User(
+            name="Test NGO",
+            email="ngo@test.com",
+            role="recipient",
+            is_verified=True,
+            capacity_people=100
+        )
+        recipient.set_password("password123")
+
+        db.session.add(recipient)
+        db.session.commit()
+
+        donation_id = create_test_donation(provider)
+
+        donation_request = DonationRequest(
+            donation_id=donation_id,
+            recipient_id=recipient.id,
+            people_to_serve=25,
+            status="pending",
+            priority_score=85.0
+        )
+
+        db.session.add(donation_request)
+        db.session.commit()
+
+    login(client)
+
+    response = client.get(
+        f"/provider/donations/{donation_id}/requests"
+    )
+
+    assert response.status_code == 200
+    assert b"Donation Requests" in response.data
+    assert b"Test NGO" in response.data
+    assert b"25" in response.data
+
+
+def test_provider_cannot_view_another_providers_requests(
+    client, app, provider, another_provider
+):
+    with app.app_context():
+        donation_id = create_test_donation(another_provider)
+
+    login(client)
+
+    response = client.get(
+        f"/provider/donations/{donation_id}/requests"
+    )
+
+    assert response.status_code == 404
+
+
+def test_provider_sees_empty_requests_message(client, app, provider):
+    with app.app_context():
+        donation_id = create_test_donation(provider)
+
+    login(client)
+
+    response = client.get(
+        f"/provider/donations/{donation_id}/requests"
+    )
+
+    assert response.status_code == 200
+    assert b"No requests have been received" in response.data

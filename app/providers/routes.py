@@ -6,7 +6,7 @@ from flask_login import current_user, login_required
 
 from app.auth.utils import role_required
 from app.extensions import db
-from app.models import Donation
+from app.models import Donation, DonationRequest
 
 
 # Provider Blueprint
@@ -243,4 +243,25 @@ def donation_history():
         'providers/history.html',
         donations=donations,
         user=current_user
+    )
+
+
+@bp.route('/donations/<int:donation_id>/requests')
+@login_required
+@role_required('provider')
+def donation_requests(donation_id):
+    # Only allow the owner of the donation to view its requests.
+    donation = Donation.query.filter_by(
+        id=donation_id,
+        provider_id=current_user.id
+    ).first_or_404()
+
+    requests = DonationRequest.query.filter_by(
+        donation_id=donation.id
+    ).order_by(DonationRequest.created_at.desc()).all()
+
+    return render_template(
+        'providers/requests.html',
+        donation=donation,
+        requests=requests
     )

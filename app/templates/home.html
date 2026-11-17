@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<!-- Hero section -->
+<div class="p-5 mb-4 bg-success-subtle rounded-3 text-center">
+  <h1 class="display-5 fw-bold">Rescue food. Feed people.</h1>
+  <p class="lead">
+    MealLoop connects canteens, hostels, restaurants and event
+    organisers that have <strong>surplus food</strong> with
+    <strong>verified NGOs</strong> who can use it before it is wasted.
+  </p>
+  {% if not current_user.is_authenticated %}
+    <a class="btn btn-success btn-lg me-2"
+       href="{{ url_for('auth.register') }}">Join MealLoop</a>
+    <a class="btn btn-outline-success btn-lg"
+       href="{{ url_for('auth.login') }}">Login</a>
+  {% else %}
+    <p class="text-muted">You are logged in. Use the menu above.</p>
+  {% endif %}
+</div>
+
+<!-- How it works -->
+<h2 class="h4 text-center mb-3">How it works</h2>
+<div class="row g-3 text-center">
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h3 class="h5">1. Providers list food</h3>
+        <p class="card-text">
+          A canteen or hostel posts surplus food with quantity,
+          expiry time and pickup location.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h3 class="h5">2. Verified NGOs request</h3>
+        <p class="card-text">
+          Admin-approved NGOs request the food. The most urgent
+          and nearest needs get priority.
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h3 class="h5">3. Food is collected</h3>
+        <p class="card-text">
+          The provider accepts a request, the NGO collects the food,
+          and our Impact page shows meals saved.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

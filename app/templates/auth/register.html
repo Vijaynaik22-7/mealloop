@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h2 class="h4 mb-3">Create your account</h2>
+
+        <!-- `form` holds what the user typed, so it is not lost on errors -->
+        <form method="post">
+
+          <div class="mb-3">
+            <label class="form-label" for="role">I am a...</label>
+            <select class="form-select" id="role" name="role" required>
+              <option value="">-- choose --</option>
+              <option value="provider"
+                {% if form.get('role') == 'provider' %}selected{% endif %}>
+                Food Provider (canteen, hostel, restaurant, event)
+              </option>
+              <option value="recipient"
+                {% if form.get('role') == 'recipient' %}selected{% endif %}>
+                Recipient (NGO / shelter)
+              </option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="name">Name / Organisation</label>
+            <input class="form-control" id="name" name="name" required
+                   value="{{ form.get('name', '') }}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="email">Email</label>
+            <input class="form-control" type="email" id="email" name="email"
+                   required value="{{ form.get('email', '') }}">
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="password">Password</label>
+              <input class="form-control" type="password" id="password"
+                     name="password" minlength="6" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="confirm_password">
+                Confirm password</label>
+              <input class="form-control" type="password"
+                     id="confirm_password" name="confirm_password"
+                     minlength="6" required>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="phone">Phone</label>
+              <input class="form-control" id="phone" name="phone"
+                     value="{{ form.get('phone', '') }}">
+            </div>
+            <div class="col-md-6 mb-3" id="capacityBox">
+              <label class="form-label" for="capacity_people">
+                People you can serve</label>
+              <input class="form-control" type="number" min="1"
+                     id="capacity_people" name="capacity_people"
+                     value="{{ form.get('capacity_people', '') }}">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="address">Address</label>
+            <input class="form-control" id="address" name="address"
+                   value="{{ form.get('address', '') }}">
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="latitude">
+                Latitude (optional)</label>
+              <input class="form-control" id="latitude" name="latitude"
+                     value="{{ form.get('latitude', '') }}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="longitude">
+                Longitude (optional)</label>
+              <input class="form-control" id="longitude" name="longitude"
+                     value="{{ form.get('longitude', '') }}">
+            </div>
+          </div>
+
+          <button class="btn btn-success w-100" type="submit">Register</button>
+        </form>
+
+        <p class="mt-3 mb-0 text-center">
+          Already registered? <a href="{{ url_for('auth.login') }}">Login</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Show the "people you can serve" box only for recipients
+  const roleSelect = document.getElementById("role");
+  const capacityBox = document.getElementById("capacityBox");
+
+  function toggleCapacity() {
+    capacityBox.style.display =
+      roleSelect.value === "recipient" ? "block" : "none";
+  }
+  roleSelect.addEventListener("change", toggleCapacity);
+  toggleCapacity();  // run once when the page loads
+</script>
+{% endblock %}

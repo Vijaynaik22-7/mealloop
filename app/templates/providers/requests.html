@@ -1,0 +1,77 @@
+
+{% extends "base.html" %}
+
+{% block title %}Donation Requests - MealLoop{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>Donation Requests</h2>
+        <p class="text-muted mb-0">
+            Requests for {{ donation.food_name }}
+        </p>
+    </div>
+
+    <a href="{{ url_for('provider.dashboard') }}"
+       class="btn btn-outline-secondary">
+        Back to Dashboard
+    </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5>{{ donation.food_name }}</h5>
+        <p class="mb-1">
+            Quantity: {{ donation.quantity }} {{ donation.unit }}
+        </p>
+        <p class="mb-0">
+            Status: {{ donation.status|title }}
+        </p>
+    </div>
+</div>
+
+{% if requests %}
+
+    {% for req in requests %}
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between">
+                <h5>{{ req.recipient.name }}</h5>
+
+                <span class="badge bg-primary">
+                    {{ req.status|title }}
+                </span>
+            </div>
+
+            <p class="mb-1">
+                Email: {{ req.recipient.email }}
+            </p>
+
+            <p class="mb-1">
+                People to serve: {{ req.people_to_serve }}
+            </p>
+
+            <p class="mb-1">
+                Priority score: {{ req.priority_score }}
+            </p>
+
+            <p class="text-muted mb-0">
+                Requested:
+                {{ req.created_at.strftime('%d %b %Y, %I:%M %p') }}
+            </p>
+
+        </div>
+    </div>
+    {% endfor %}
+
+{% else %}
+
+    <div class="alert alert-info">
+        No requests have been received for this donation yet.
+    </div>
+
+{% endif %}
+
+{% endblock %}

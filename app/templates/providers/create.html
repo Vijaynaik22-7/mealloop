@@ -1,0 +1,108 @@
+
+{% extends "base.html" %}
+
+{% block title %}Create Donation - MealLoop{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+
+                <h2 class="text-success mb-2">Create Food Donation</h2>
+                <p class="text-muted mb-4">
+                    Share your surplus food with people who need it.
+                </p>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST"
+                      action="{{ url_for('provider.create_donation') }}">
+
+                    <div class="mb-3">
+                        <label class="form-label">Food Name</label>
+                        <input type="text"
+                               name="food_name"
+                               class="form-control"
+                               placeholder="Example: Vegetable Rice"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Quantity</label>
+                        <input type="number"
+                               name="quantity"
+                               class="form-control"
+                               min="1"
+                               step="1"
+                               placeholder="Enter quantity"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Unit</label>
+                        <select name="unit" class="form-select" required>
+                            <option value="">Select unit</option>
+                            <option value="plates">Plates</option>
+                            <option value="kg">Kilograms</option>
+                            <option value="packets">Packets</option>
+                            <option value="litres">Litres</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Prepared Date and Time</label>
+                        <input type="datetime-local"
+                               name="prepared_at"
+                               class="form-control"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Expiry Date and Time</label>
+                        <input type="datetime-local"
+                               name="expiry_time"
+                               class="form-control"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Pickup Location</label>
+                        <textarea name="pickup_location"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Enter the complete pickup address"
+                                  required></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit"
+                                class="btn btn-success">
+                            Submit Donation
+                        </button>
+
+                        <a href="{{ url_for('provider.dashboard') }}"
+                           class="btn btn-secondary">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

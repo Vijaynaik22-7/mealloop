@@ -111,7 +111,7 @@ def browse_donations():
             "recipients/donations.html", verified=False, items=[]
         )
 
-    now = datetime.now()  # use the same clock the provider module uses
+    now = datetime.utcnow()  # use the same clock the provider module uses
 
     # One query: each available, not-yet-expired donation with its provider
     rows = (
@@ -151,7 +151,7 @@ def request_donation(donation_id):
         abort(404)
 
     # Someone else may have requested it first, or it may have expired
-    now = datetime.now()
+    now = datetime.utcnow()
     if donation.status != "available" or donation.expiry_time <= now:
         flash("Sorry, this donation is no longer available.", "warning")
         return redirect(url_for("recipients.browse_donations"))
@@ -226,7 +226,7 @@ def accept_request(request_id):
     if donation_request.status != "pending":
         flash("This request was already decided.", "warning")
         return redirect(PROVIDER_DASHBOARD)
-    if donation.expiry_time <= datetime.now():
+    if donation.expiry_time <= datetime.utcnow():
         flash("This donation has expired, so it cannot be accepted.",
               "warning")
         return redirect(PROVIDER_DASHBOARD)
@@ -259,7 +259,7 @@ def reject_request(request_id):
     # If nobody else is waiting, put the food back on the browse list
     if _other_pending(donation_request).count() == 0:
         if donation.status == "requested":
-            if donation.expiry_time > datetime.now():
+            if donation.expiry_time > datetime.utcnow():
                 donation.status = "available"
             else:
                 donation.status = "expired"
@@ -303,7 +303,7 @@ def collect_request(request_id):
         return redirect(back)
 
     donation_request.status = "collected"
-    donation_request.collected_at = datetime.now()
+    donation_request.collected_at = datetime.utcnow()
     donation.status = "collected"
     db.session.commit()
 

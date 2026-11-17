@@ -26,5 +26,6 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" || exit 1
 
-# Run with gunicorn (production server), not the Flask dev server
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "run:app"]
+# --preload imports the app once, so db.create_all() runs once (no two-worker race).
+# One worker is enough for SQLite and a demo.
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--preload", "run:app"]

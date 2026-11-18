@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Home{% endblock %} | MealLoop</title>
-  <!-- Bootstrap 5 from CDN (needs internet) -->
+  <!-- Bootstrap 5 is served from static/vendor so the demo works offline -->
   <link rel="stylesheet"
         href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
   <!-- Optional extra blocks that other members' pages may use -->
@@ -30,16 +30,31 @@
 
           {% if current_user.is_authenticated %}
             {% if current_user.role == 'provider' %}
+              <!-- Provider: dashboard, add food, finished donations -->
               <li class="nav-item">
                 <a class="nav-link" href="/provider/dashboard">My Donations</a>
               </li>
-            {% elif current_user.role == 'recipient' %}
               <li class="nav-item">
-                <a class="nav-link" href="/recipient/dashboard">Find Food</a>
+                <a class="nav-link" href="/provider/donations/create">Add Donation</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/provider/history">History</a>
+              </li>
+            {% elif current_user.role == 'recipient' %}
+              <!-- NGO: browse available food, and track own requests -->
+              <li class="nav-item">
+                <a class="nav-link" href="/recipient/donations">Find Food</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/recipient/dashboard">My Requests</a>
               </li>
             {% elif current_user.role == 'admin' %}
+              <!-- Admin: overview and NGO verification -->
               <li class="nav-item">
                 <a class="nav-link" href="/admin/dashboard">Admin Panel</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/admin/recipients">Verify NGOs</a>
               </li>
             {% endif %}
             <li class="nav-item">

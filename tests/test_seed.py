@@ -27,3 +27,24 @@ def test_seed_is_safe_to_run_twice():
         assert seed_demo_data() is False  # second run does nothing
         assert User.query.count() == 4
         assert Donation.query.count() == 5
+
+
+def test_seed_phones_have_country_code(monkeypatch):
+    # No overrides set: the defaults must start with 91 for WhatsApp
+    monkeypatch.delenv("DEMO_PROVIDER_PHONE", raising=False)
+    monkeypatch.delenv("DEMO_NGO_PHONE", raising=False)
+    monkeypatch.delenv("DEMO_NGO2_PHONE", raising=False)
+    app = make_app()
+    with app.app_context():
+        seed_demo_data()
+        for user in User.query.filter(User.role != "admin"):
+            assert user.phone.startswith("91")
+
+
+def test_seed_phone_can_be_overridden(monkeypatch):
+    monkeypatch.setenv("DEMO_NGO_PHONE", "911234567890")
+    app = make_app()
+    with app.app_context():
+        seed_demo_data()
+        ngo = User.query.filter_by(email="hope@mealloop.com").first()
+        assert ngo.phone == "911234567890"

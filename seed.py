@@ -3,7 +3,13 @@
 Run locally:   python seed.py
 In Docker:     runs automatically before gunicorn starts (see Dockerfile).
 Safe to run twice: if any user already exists, it does nothing.
+
+Phone numbers use the country code (91) so WhatsApp links and the WhatsApp
+API work. To use real test numbers, set these environment variables
+(for example on Render) before the first start:
+  DEMO_PROVIDER_PHONE, DEMO_NGO_PHONE, DEMO_NGO2_PHONE
 """
+import os
 from datetime import datetime, timedelta
 
 from app import create_app
@@ -27,21 +33,26 @@ def seed_demo_data():
         print("Seed skipped: database already has users.")
         return False
 
+    # Read at call time so tests and Render can override them
+    provider_phone = os.environ.get("DEMO_PROVIDER_PHONE", "919800000001")
+    ngo_phone = os.environ.get("DEMO_NGO_PHONE", "919800000002")
+    ngo2_phone = os.environ.get("DEMO_NGO2_PHONE", "919800000003")
+
     admin = make_user("MealLoop Admin", "admin@mealloop.com", "admin", True)
 
     canteen = make_user(
         "College Canteen", "canteen@mealloop.com", "provider", True,
-        phone="9800000001", address="Main Canteen, Mysuru",
+        phone=provider_phone, address="Main Canteen, Mysuru",
         latitude=12.2958, longitude=76.6394,
     )
     ngo_ok = make_user(
         "Hope Foundation", "hope@mealloop.com", "recipient", True,
-        phone="9800000002", address="Hope Shelter, Mysuru",
+        phone=ngo_phone, address="Hope Shelter, Mysuru",
         latitude=12.3050, longitude=76.6550, capacity_people=80,
     )
     ngo_pending = make_user(
         "New Helpers Trust", "helpers@mealloop.com", "recipient", False,
-        phone="9800000003", address="Gokulam, Mysuru",
+        phone=ngo2_phone, address="Gokulam, Mysuru",
         latitude=12.3200, longitude=76.6300, capacity_people=40,
     )
     db.session.add_all([admin, canteen, ngo_ok, ngo_pending])

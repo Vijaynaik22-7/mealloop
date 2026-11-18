@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile{% endblock %}
+
+{% block content %}
+<div class="container my-4" style="max-width: 560px;">
+  <h2 class="mb-3">Organisation Profile</h2>
+
+  {# Unverified NGOs can edit their profile but cannot request food yet #}
+  {% if not current_user.is_verified %}
+    <div class="alert alert-warning">
+      Your account is pending admin approval. You can update your profile
+      now, but you can request donations only after you are verified.
+    </div>
+  {% endif %}
+
+  <form method="post" novalidate>
+    <div class="mb-3">
+      <label for="name" class="form-label">Organisation name</label>
+      <input type="text" id="name" name="name" class="form-control"
+             maxlength="120" required value="{{ form.name or '' }}">
+    </div>
+
+    <div class="mb-3">
+      <label for="address" class="form-label">Address</label>
+      <textarea id="address" name="address" class="form-control"
+                rows="3" required>{{ form.address or '' }}</textarea>
+    </div>
+
+    <div class="mb-3">
+      <label for="capacity_people" class="form-label">
+        Capacity (people you can serve)
+      </label>
+      <input type="number" id="capacity_people" name="capacity_people"
+             class="form-control" min="1" step="1" required
+             value="{{ form.capacity_people or '' }}">
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save changes</button>
+  </form>
+</div>
+{% endblock %}

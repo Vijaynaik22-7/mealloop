@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Available Donations{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  <h2 class="mb-3">Available Donations</h2>
+
+  {% if not verified %}
+    {# Unverified NGOs see this message instead of the list #}
+    <div class="alert alert-warning">
+      Your account is pending approval by an admin. Once you are verified,
+      available food donations will appear here.
+    </div>
+  {% elif not items %}
+    <div class="alert alert-info">
+      No donations are available right now. Please check back soon.
+    </div>
+  {% else %}
+    <div class="row g-3">
+      {% for item in items %}
+        {% set d = item.donation %}
+        <div class="col-md-6">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title">
+                {{ d.food_name }}
+                <span class="badge bg-success float-end">
+                  Priority {{ "%.1f"|format(item.score) }}
+                </span>
+              </h5>
+              <p class="mb-1">
+                <strong>Quantity:</strong> {{ d.quantity }} {{ d.unit }}
+              </p>
+              <p class="mb-1">
+                <strong>From:</strong> {{ item.provider.name }}
+              </p>
+              <p class="mb-1">
+                <strong>Pickup:</strong> {{ d.pickup_location }}
+              </p>
+              <p class="mb-1">
+                <strong>Prepared:</strong>
+                {{ d.prepared_at.strftime("%d %b, %I:%M %p") }}
+              </p>
+              <p class="mb-3 text-danger">
+                <strong>Expires:</strong>
+                {{ d.expiry_time.strftime("%d %b, %I:%M %p") }}
+              </p>
+
+              {# Request form: how many people will you serve? #}
+              <form method="post" class="d-flex gap-2"
+                    action="{{ url_for('recipients.request_donation',
+                                       donation_id=d.id) }}">
+                <input type="number" name="people_to_serve"
+                       class="form-control" min="1" step="1" required
+                       {% if current_user.capacity_people %}
+                       max="{{ current_user.capacity_people }}"
+                       {% endif %}
+                       placeholder="People to serve">
+                <button type="submit" class="btn btn-primary">Request</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

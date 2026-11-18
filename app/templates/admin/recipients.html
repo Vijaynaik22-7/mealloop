@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Approve NGOs{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">NGOs Waiting for Approval</h2>
+    <a href="{{ url_for('admin.dashboard') }}"
+       class="btn btn-outline-secondary btn-sm">Back to dashboard</a>
+  </div>
+
+  {% if not recipients %}
+    <div class="alert alert-info">
+      No NGOs are waiting for approval.
+    </div>
+  {% else %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Organisation</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Capacity</th>
+            <th>Registered</th>
+            <th>Decision</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in recipients %}
+            <tr>
+              <td>{{ u.name }}</td>
+              <td>{{ u.email }}</td>
+              <td>{{ u.phone or "-" }}</td>
+              <td>{{ u.address or "-" }}</td>
+              <td>{{ u.capacity_people or "-" }}</td>
+              <td>
+                {{ u.created_at.strftime("%d %b %Y")
+                   if u.created_at else "-" }}
+              </td>
+              <td class="d-flex gap-2">
+                <form method="post"
+                      action="{{ url_for('admin.approve_recipient',
+                                         user_id=u.id) }}">
+                  <button type="submit" class="btn btn-sm btn-success">
+                    Approve
+                  </button>
+                </form>
+                <form method="post"
+                      action="{{ url_for('admin.reject_recipient',
+                                         user_id=u.id) }}"
+                      onsubmit="return confirm('Reject and remove this NGO?');">
+                  <button type="submit"
+                          class="btn btn-sm btn-outline-danger">
+                    Reject
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

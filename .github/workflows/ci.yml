@@ -78,8 +78,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # The commit id is baked into the image (shown in the footer)
       - name: Build Docker image
-        run: docker build -t mealloop:ci .
+        run: docker build --build-arg GIT_SHA=${{ github.sha }} -t mealloop:ci .
 
       - name: Start container
         run: docker run -d --name mealloop-ci -p 5000:5000 mealloop:ci
@@ -104,6 +105,13 @@ jobs:
           echo "HTTP status: $CODE"
           [ "$CODE" = "200" ]
 
+      # The running container must report the commit it was built from
+      - name: Check build version
+        run: |
+          BODY=$(curl -s http://localhost:5000/version)
+          echo "Version response: $BODY"
+          echo "$BODY" | grep -q "${GITHUB_SHA::7}"
+
       # Show logs if anything above failed
       - name: Show logs on failure
         if: failure()
@@ -127,8 +135,8 @@ jobs:
       packages: write          # lets GITHUB_TOKEN push to ghcr.io
     environment:
       name: production
-      # Replace with your real Render URL (shows a "View deployment" link)
-      url: https://mealloop.onrender.com
+      # Shows a "View deployment" link on the run page
+      url: https://mealloop-latest.onrender.com
 
     steps:
       - name: Checkout code
@@ -150,6 +158,9 @@ jobs:
         with:
           context: .
           push: true
+          # The footer on the live site shows this commit id
+          build-args: |
+            GIT_SHA=${{ github.sha }}
           tags: |
             ${{ env.IMAGE }}:${{ github.sha }}
             ${{ env.IMAGE }}:latest

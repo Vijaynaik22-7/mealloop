@@ -23,9 +23,10 @@ USER appuser
 EXPOSE 5000
 
 # Docker marks the container "healthy" if /health answers
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" || exit 1
 
-# --preload imports the app once, so db.create_all() runs once (no two-worker race).
-# One worker is enough for SQLite and a demo.
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--preload", "run:app"]
+# 1) seed.py fills an empty database with demo data (skips if users exist).
+#    The ";" means gunicorn still starts even if seeding fails.
+# 2) --preload + 1 worker avoids the two-worker create_all race on SQLite.
+CMD ["sh", "-c", "python seed.py; exec gunicorn --bind 0.0.0.0:5000 --workers 1 --preload run:app"]

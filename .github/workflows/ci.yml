@@ -127,8 +127,8 @@ jobs:
       packages: write          # lets GITHUB_TOKEN push to ghcr.io
     environment:
       name: production
-      # Replace with your real Render URL (shows a "View deployment" link)
-      url: https://mealloop.onrender.com
+      # Shows a "View deployment" link on the run page
+      url: https://mealloop-latest.onrender.com
 
     steps:
       - name: Checkout code

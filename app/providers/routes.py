@@ -1,4 +1,3 @@
-
 from datetime import datetime
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash
@@ -15,6 +14,10 @@ bp = Blueprint(
     __name__,
     url_prefix='/provider'
 )
+
+# Donations that are still "in progress" (shown on the dashboard).
+# Everything else (collected, expired, cancelled) goes to History.
+ACTIVE_STATUSES = ['available', 'requested', 'accepted']
 
 
 # Get a donation belonging to the logged-in provider
@@ -34,9 +37,9 @@ def get_provider_donation(donation_id):
 @role_required('provider')
 def dashboard():
 
-    donations = Donation.query.filter_by(
-        provider_id=current_user.id,
-        status='available'
+    donations = Donation.query.filter(
+        Donation.provider_id == current_user.id,
+        Donation.status.in_(ACTIVE_STATUSES)
     ).order_by(
         Donation.created_at.desc()
     ).all()
@@ -226,7 +229,7 @@ def delete_donation(donation_id):
     return redirect(url_for('provider.dashboard'))
 
 
-# Provider Donation History
+# Provider Donation History (finished donations only)
 @bp.route('/history')
 @login_required
 @role_required('provider')
@@ -234,7 +237,7 @@ def donation_history():
 
     donations = Donation.query.filter(
         Donation.provider_id == current_user.id,
-        Donation.status != 'available'
+        Donation.status.notin_(ACTIVE_STATUSES)
     ).order_by(
         Donation.created_at.desc()
     ).all()

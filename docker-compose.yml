@@ -1,6 +1,11 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        # Shows in the footer. Set GIT_SHA before "docker compose up",
+        # otherwise it shows "local".
+        GIT_SHA: ${GIT_SHA:-local}
     image: mealloop:latest
     container_name: mealloop
     ports:

@@ -20,6 +20,11 @@ RUN useradd --create-home appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
+# Commit id of this build. CI passes the real SHA with --build-arg;
+# the app shows it in the footer and at /version.
+ARG GIT_SHA=dev
+ENV BUILD_SHA=$GIT_SHA
+
 EXPOSE 5000
 
 # Docker marks the container "healthy" if /health answers

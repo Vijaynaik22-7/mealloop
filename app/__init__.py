@@ -50,6 +50,8 @@ def create_app(test_config=None):
         SQLALCHEMY_DATABASE_URI=os.environ.get(
             "DATABASE_URL", "sqlite:///mealloop.db"),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        # Short commit id of this build (set in the Docker image by CI)
+        BUILD_SHA=os.environ.get("BUILD_SHA", "dev")[:7],
     )
     if test_config:
         app.config.update(test_config)  # tests override settings here
@@ -63,6 +65,11 @@ def create_app(test_config=None):
 
     register_blueprints(app)
 
+    @app.context_processor
+    def inject_build_sha():
+        """Make {{ build_sha }} available in every template (footer)."""
+        return {"build_sha": app.config["BUILD_SHA"]}
+
     @app.route("/")
     def home():
         return render_template("home.html")  # created in step 5
@@ -71,5 +78,10 @@ def create_app(test_config=None):
     def health():
         """Tiny endpoint for CI tests and the Docker healthcheck."""
         return {"status": "ok"}
+
+    @app.route("/version")
+    def version():
+        """Which commit is running? Used to prove a deploy happened."""
+        return {"version": app.config["BUILD_SHA"]}
 
     return app

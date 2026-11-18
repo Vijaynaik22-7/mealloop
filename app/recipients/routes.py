@@ -217,6 +217,34 @@ def _other_pending(donation_request):
     )
 
 
+def _split_leftover(donation, needed):
+    """If the NGO needs less than the donation holds, keep the rest.
+
+    The accepted donation shrinks to `needed`; the leftover becomes a new
+    available donation (same food, expiry and pickup place), so it shows
+    up on Find Food again. Returns the leftover quantity (0 if none).
+    We treat 1 person to serve as 1 packet.
+    """
+    if needed < 1 or needed >= donation.quantity:
+        return 0
+    leftover_quantity = donation.quantity - needed
+    leftover = Donation(
+        provider_id=donation.provider_id,
+        food_name=donation.food_name,
+        quantity=leftover_quantity,
+        unit=donation.unit,
+        prepared_at=donation.prepared_at,
+        expiry_time=donation.expiry_time,
+        pickup_location=donation.pickup_location,
+        latitude=donation.latitude,
+        longitude=donation.longitude,
+        status="available",
+    )
+    donation.quantity = needed
+    db.session.add(leftover)
+    return leftover_quantity
+
+
 @bp.route("/requests/<int:request_id>/accept", methods=["POST"])
 @role_required("provider")
 def accept_request(request_id):
@@ -234,13 +262,24 @@ def accept_request(request_id):
     donation_request.status = "accepted"
     donation.status = "accepted"
 
-    # Only one NGO gets the food, so reject all other pending requests
+    # Only one NGO gets this food, so reject all other pending requests
     _other_pending(donation_request).update(
         {"status": "rejected"}, synchronize_session=False
     )
+
+    # Partial request: the part nobody asked for goes back on the list
+    unit = donation.unit
+    leftover = _split_leftover(donation, donation_request.people_to_serve)
     db.session.commit()
 
-    flash("Request accepted.", "success")
+    if leftover:
+        flash(
+            f"Request accepted. The remaining {leftover} {unit} are back "
+            "on the Find Food list.",
+            "success",
+        )
+    else:
+        flash("Request accepted.", "success")
     return redirect(PROVIDER_DASHBOARD)
 
 

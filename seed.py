@@ -8,6 +8,9 @@ Phone numbers use the country code (91) so WhatsApp links and the WhatsApp
 API work. To use real test numbers, set these environment variables
 (for example on Render) before the first start:
   DEMO_PROVIDER_PHONE, DEMO_NGO_PHONE, DEMO_NGO2_PHONE
+
+Demo users are marked email_verified=True, so they can always log in even
+when the email OTP feature (OTP_ENABLED=true) is switched on.
 """
 import os
 from datetime import datetime, timedelta
@@ -21,8 +24,11 @@ DEMO_PASSWORD = "Demo@1234"
 
 
 def make_user(name, email, role, verified, **extra):
-    """Build a User with a hashed password."""
-    user = User(name=name, email=email, role=role, is_verified=verified, **extra)
+    """Build a User with a hashed password (email already verified)."""
+    user = User(
+        name=name, email=email, role=role, is_verified=verified,
+        email_verified=True, **extra
+    )
     user.set_password(DEMO_PASSWORD)
     return user
 

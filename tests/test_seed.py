@@ -48,3 +48,13 @@ def test_seed_phone_can_be_overridden(monkeypatch):
         seed_demo_data()
         ngo = User.query.filter_by(email="hope@mealloop.com").first()
         assert ngo.phone == "911234567890"
+
+
+def test_seed_users_are_email_verified():
+    # Demo logins must never be blocked by the email OTP feature
+    app = make_app()
+    with app.app_context():
+        seed_demo_data()
+        assert User.query.count() == 4
+        for user in User.query.all():
+            assert user.email_verified is True

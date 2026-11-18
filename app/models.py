@@ -24,6 +24,9 @@ class User(UserMixin, db.Model):
     capacity_people = db.Column(db.Integer)
     # providers: auto True, recipients: False until admin approves
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
+    # True once the user proved they own the email address (OTP feature).
+    # Only checked at login when OTP_ENABLED is "true".
+    email_verified = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
@@ -35,6 +38,34 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return f"<User {self.email} ({self.role})>"
+
+
+class EmailOtp(db.Model):
+    """One-time code for email verification (one row per user).
+
+    The code itself is never stored, only its hash. Sending a new code
+    replaces the old row's values.
+    """
+    __tablename__ = "email_otp"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("user.id"), nullable=False, unique=True)
+    code_hash = db.Column(db.String(255), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    # Wrong guesses so far (the code is locked after 5)
+    attempts = db.Column(db.Integer, default=0, nullable=False)
+    # Used to enforce "resend only after 60 seconds"
+    last_sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship(
+        "User",
+        backref=db.backref("email_otp", uselist=False,
+                           cascade="all, delete-orphan"))
+
+    def __repr__(self):
+        return f"<EmailOtp user={self.user_id} attempts={self.attempts}>"
 
 
 class Donation(db.Model):

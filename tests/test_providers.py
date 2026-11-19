@@ -334,3 +334,134 @@ def test_provider_sees_empty_requests_message(client, app, provider):
 
     assert response.status_code == 200
     assert b"No requests have been received" in response.data
+
+
+def test_create_donation_with_coordinates(client, app, provider):
+    login(client)
+
+    response = client.post(
+        "/provider/donations/create",
+        data={
+            "food_name": "Vegetable Rice",
+            "quantity": "20",
+            "unit": "plates",
+            "prepared_at": datetime.now().isoformat(timespec="minutes"),
+            "expiry_time": (
+                datetime.now() + timedelta(hours=5)
+            ).isoformat(timespec="minutes"),
+            "pickup_location": "College Main Gate",
+            "latitude": "12.9716",
+            "longitude": "77.5946"
+        },
+        follow_redirects=True
+    )
+
+    assert response.status_code == 200
+
+    with app.app_context():
+        donation = Donation.query.filter_by(
+            provider_id=provider,
+            food_name="Vegetable Rice"
+        ).first()
+
+        assert donation.latitude == pytest.approx(12.9716)
+        assert donation.longitude == pytest.approx(77.5946)
+
+
+def test_create_donation_without_coordinates(client, app, provider):
+    login(client)
+
+    response = client.post(
+        "/provider/donations/create",
+        data={
+            "food_name": "Plain Rice",
+            "quantity": "10",
+            "unit": "plates",
+            "prepared_at": datetime.now().isoformat(timespec="minutes"),
+            "expiry_time": (
+                datetime.now() + timedelta(hours=5)
+            ).isoformat(timespec="minutes"),
+            "pickup_location": "College Main Gate",
+            "latitude": "",
+            "longitude": ""
+        },
+        follow_redirects=True
+    )
+
+    assert response.status_code == 200
+
+    with app.app_context():
+        donation = Donation.query.filter_by(
+            provider_id=provider,
+            food_name="Plain Rice"
+        ).first()
+
+        assert donation is not None
+        assert donation.latitude is None
+        assert donation.longitude is None
+
+
+def test_create_donation_rejects_invalid_coordinates(
+    client, app, provider
+):
+    login(client)
+
+    response = client.post(
+        "/provider/donations/create",
+        data={
+            "food_name": "Invalid Location Rice",
+            "quantity": "10",
+            "unit": "plates",
+            "prepared_at": datetime.now().isoformat(timespec="minutes"),
+            "expiry_time": (
+                datetime.now() + timedelta(hours=5)
+            ).isoformat(timespec="minutes"),
+            "pickup_location": "College Main Gate",
+            "latitude": "95",
+            "longitude": "77.5946"
+        },
+        follow_redirects=True
+    )
+
+    assert response.status_code == 200
+    assert b"coordinates" in response.data.lower()
+
+    with app.app_context():
+        donation = Donation.query.filter_by(
+            provider_id=provider,
+            food_name="Invalid Location Rice"
+        ).first()
+
+        assert donation is None
+
+
+def test_edit_donation_updates_coordinates(client, app, provider):
+    with app.app_context():
+        donation_id = create_test_donation(provider)
+
+    login(client)
+
+    response = client.post(
+        f"/provider/donations/{donation_id}/edit",
+        data={
+            "food_name": "Updated Rice",
+            "quantity": "30",
+            "unit": "plates",
+            "prepared_at": datetime.now().isoformat(timespec="minutes"),
+            "expiry_time": (
+                datetime.now() + timedelta(hours=6)
+            ).isoformat(timespec="minutes"),
+            "pickup_location": "Updated College Gate",
+            "latitude": "13.0827",
+            "longitude": "80.2707"
+        },
+        follow_redirects=True
+    )
+
+    assert response.status_code == 200
+
+    with app.app_context():
+        donation = db.session.get(Donation, donation_id)
+
+        assert donation.latitude == pytest.approx(13.0827)
+        assert donation.longitude == pytest.approx(80.2707)

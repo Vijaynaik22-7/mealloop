@@ -18,7 +18,10 @@ from app.auth.utils import role_required
 from app.extensions import db
 from app.models import Donation, DonationRequest, User
 from app.recipients.directions import directions_url
-from app.recipients.distance import distance_km, distance_label, has_location
+from app.recipients.distance import (
+    best_distance_label, has_location, road_distance_enabled,
+    road_distances_km,
+)
 from app.recipients.expiry import expiry_badge
 from app.recipients.mapdata import map_markers, maps_api_key
 
@@ -127,14 +130,22 @@ def browse_donations():
     )
 
     recipient = current_user._get_current_object()
+
+    # Road distance for ALL donations in one call. If it is switched off
+    # or fails, this stays empty and we show the straight-line distance.
+    road = {}
+    if road_distance_enabled():
+        road = road_distances_km(recipient, [d for d, _ in rows])
+
     items = []
     for donation, provider in rows:
+        # The priority score always uses the straight-line distance
         score = calculate_priority_score(donation, recipient, now=now)
-        # Straight-line distance text, or "distance unknown"
-        km = distance_km(recipient, donation)
+        label = best_distance_label(
+            recipient, donation, road.get(donation.id))
         items.append(
             {"donation": donation, "provider": provider, "score": score,
-             "distance": distance_label(km),
+             "distance": label,
              # Google Maps link (None if we know no destination at all)
              "directions": directions_url(donation),
              # Badge text and colour: "Expires in 3h", "Expiring soon"...
@@ -387,7 +398,7 @@ def dashboard():
         status = donation_request.status
         counts[status] = counts.get(status, 0) + 1
         items.append(
-            {"req": donation_request, "donation": donation,
+            {"donation": donation, "req": donation_request,
              "provider": provider}
         )
 

@@ -77,12 +77,30 @@
                 </form>
             </div>
             {% elif req.status == 'accepted' %}
-            <form method="POST" class="mt-3"
-                  action="{{ url_for('recipients.collect_request', request_id=req.id) }}">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    Mark as collected
-                </button>
-            </form>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <form method="POST"
+                      action="{{ url_for('provider.notify_ngo_whatsapp', request_id=req.id) }}">
+                    <button type="submit" class="btn btn-success btn-sm"
+                            {% if not req.recipient.phone %}disabled{% endif %}>
+                        Notify NGO on WhatsApp
+                    </button>
+                </form>
+
+                {% if whatsapp_links.get(req.id) %}
+                <a class="btn btn-outline-success btn-sm"
+                   href="{{ whatsapp_links.get(req.id) }}"
+                   target="_blank" rel="noopener noreferrer">
+                    Open WhatsApp
+                </a>
+                {% endif %}
+
+                <form method="POST"
+                      action="{{ url_for('recipients.collect_request', request_id=req.id) }}">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        Mark as collected
+                    </button>
+                </form>
+            </div>
             {% endif %}
 
         </div>

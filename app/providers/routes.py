@@ -9,6 +9,7 @@ from flask_login import current_user, login_required
 from app.auth.utils import role_required
 from app.extensions import db
 from app.models import Donation, DonationRequest
+from app.providers.expiry import expiry_badge
 
 
 # Provider Blueprint
@@ -93,7 +94,9 @@ def dashboard():
     return render_template(
         'providers/dashboard.html',
         user=current_user,
-        donations=donations
+        donations=donations,
+        expiry_badge=expiry_badge,
+        now=datetime.now()
     )
 
 

@@ -17,6 +17,7 @@ from flask_login import current_user, login_required
 from app.auth.utils import role_required
 from app.extensions import db
 from app.models import Donation, DonationRequest, User
+from app.recipients.directions import directions_url
 from app.recipients.distance import distance_km, distance_label, has_location
 
 # Member 3 writes this function. Until it exists, use a stub that
@@ -131,7 +132,9 @@ def browse_donations():
         km = distance_km(recipient, donation)
         items.append(
             {"donation": donation, "provider": provider, "score": score,
-             "distance": distance_label(km)}
+             "distance": distance_label(km),
+             # Google Maps link (None if we know no destination at all)
+             "directions": directions_url(donation)}
         )
 
     # Highest score first; if scores tie, the one expiring soonest first

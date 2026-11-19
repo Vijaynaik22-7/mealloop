@@ -1,5 +1,4 @@
 
-{% set impact = data or {} %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,282 +9,296 @@
 
     <!-- Bootstrap CSS -->
     <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}"
         rel="stylesheet"
     >
 
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            background-color: #f4f7f5;
             font-family: Arial, sans-serif;
+            background: #f4f7f6;
+            color: #263238;
+            padding: 25px;
         }
 
-        .navbar {
-            background-color: #198754;
+        .container {
+            max-width: 1200px;
+            margin: auto;
         }
 
-        .navbar-brand {
-            color: white;
-            font-weight: bold;
-            font-size: 24px;
+        header {
+            margin-bottom: 25px;
         }
 
-        .dashboard-title {
-            color: #198754;
-            font-weight: bold;
+        header h1 {
+            color: #176b50;
+            margin-bottom: 8px;
         }
 
-        .stat-card {
-            border: none;
+        header p {
+            color: #64748b;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 22px;
             border-radius: 12px;
-            transition: transform 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
 
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .stat-number {
-            font-size: 30px;
-            font-weight: bold;
-            color: #198754;
-        }
-
-        .stat-label {
-            color: #666;
+        .card h3 {
             font-size: 15px;
+            color: #64748b;
+            margin-bottom: 12px;
         }
 
-        .chart-card {
-            border: none;
+        .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #176b50;
+        }
+
+        .note {
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        .section {
+            background: white;
+            padding: 24px;
             border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .section h2 {
+            font-size: 20px;
+            margin-bottom: 18px;
+            color: #176b50;
+        }
+
+        .quantity-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .quantity-item {
+            background: #e9f5ef;
+            padding: 14px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .leaderboard {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .leaderboard th,
+        .leaderboard td {
+            padding: 13px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .leaderboard th {
+            color: #64748b;
+            background: #f8faf9;
+        }
+
+        .empty {
+            color: #64748b;
+            padding: 12px 0;
         }
 
         .chart-container {
-            height: 350px;
             position: relative;
+            width: 100%;
+            height: 320px;
         }
 
         footer {
-            margin-top: 40px;
-            padding: 15px;
             text-align: center;
-            color: #777;
+            color: #64748b;
+            font-size: 13px;
+            padding: 15px;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .section {
+                padding: 16px;
+            }
+
+            .leaderboard th,
+            .leaderboard td {
+                padding: 9px;
+                font-size: 13px;
+            }
         }
     </style>
 </head>
 
 <body>
+    <main class="container">
 
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
-            <a class="navbar-brand" href="/">MealLoop</a>
+        <header>
+            <h1>MealLoop Impact Dashboard</h1>
+            <p>Track food rescue activities and their environmental impact.</p>
+        </header>
 
-            <span class="text-white">
-                Impact Dashboard
-            </span>
-        </div>
-    </nav>
+        <section class="stats">
 
-    <!-- Dashboard -->
-    <div class="container py-5">
-
-        <div class="text-center mb-5">
-            <h2 class="dashboard-title">
-                MealLoop Impact Dashboard
-            </h2>
-
-            <p class="text-muted">
-                Together, we can reduce food waste and feed more people.
-            </p>
-        </div>
-
-        <!-- Statistics Cards -->
-        <div class="row g-4">
-
-            <!-- Completed Donations -->
-            <div class="col-md-4 col-lg">
-                <div class="card stat-card shadow-sm h-100">
-                    <div class="card-body text-center">
-                        <h3 class="stat-number">
-                            {{ impact.completed_donations|default(0) }}
-                        </h3>
-
-                        <p class="stat-label mb-0">
-                            Completed Donations
-                        </p>
-                    </div>
-                </div>
+            <div class="card">
+                <h3>Completed Donations</h3>
+                <div class="value">{{ data.completed_donations }}</div>
             </div>
 
-            <!-- Total Meals -->
-            <div class="col-md-4 col-lg">
-                <div class="card stat-card shadow-sm h-100">
-                    <div class="card-body text-center">
-                        <h3 class="stat-number">
-                            {{ impact.total_meals|default(0) }}
-                        </h3>
-
-                        <p class="stat-label mb-0">
-                            Meals Rescued
-                        </p>
-                    </div>
-                </div>
+            <div class="card">
+                <h3>Meals Served</h3>
+                <div class="value">{{ data.total_meals }}</div>
+                <p class="note">Based on collected requests and people served.</p>
             </div>
 
-            <!-- Waste Avoided -->
-            <div class="col-md-4 col-lg">
-                <div class="card stat-card shadow-sm h-100">
-                    <div class="card-body text-center">
-                        <h3 class="stat-number">
-                            {{ impact.waste_avoided|default(0) }} kg
-                        </h3>
-
-                        <p class="stat-label mb-0">
-                            Food Waste Avoided
-                        </p>
-                    </div>
-                </div>
+            <div class="card">
+                <h3>Estimated CO₂ Saved</h3>
+                <div class="value">{{ data.estimated_co2_saved }} kg</div>
+                <p class="note">
+                    Estimate factor: {{ data.co2_factor }} kg CO₂e per meal served.
+                    This is a project estimate, not a measured value.
+                </p>
             </div>
 
-            <!-- Verified Providers -->
-            <div class="col-md-6 col-lg">
-                <div class="card stat-card shadow-sm h-100">
-                    <div class="card-body text-center">
-                        <h3 class="stat-number">
-                            {{ impact.active_providers|default(0) }}
-                        </h3>
-
-                        <p class="stat-label mb-0">
-                            Verified Providers
-                        </p>
-                    </div>
-                </div>
+            <div class="card">
+                <h3>Verified Providers</h3>
+                <div class="value">{{ data.active_providers }}</div>
             </div>
 
-            <!-- Verified NGOs -->
-            <div class="col-md-6 col-lg">
-                <div class="card stat-card shadow-sm h-100">
-                    <div class="card-body text-center">
-                        <h3 class="stat-number">
-                            {{ impact.verified_ngos|default(0) }}
-                        </h3>
-
-                        <p class="stat-label mb-0">
-                            Verified NGOs
-                        </p>
-                    </div>
-                </div>
+            <div class="card">
+                <h3>Verified NGOs</h3>
+                <div class="value">{{ data.verified_ngos }}</div>
             </div>
 
-        </div>
+        </section>
 
-        <!-- Donations Chart -->
-        <div class="card chart-card shadow-sm mt-5">
-            <div class="card-body p-4">
+        <section class="section">
+            <h2>Total Food Quantity Rescued</h2>
 
-                <h4 class="mb-4">
-                    Daily Donation Statistics
-                </h4>
-
-                <div class="chart-container">
-                    <canvas
-                        id="donationChart"
-                        data-chart-labels='{{ impact.chart_labels|default([], true)|tojson }}'
-                        data-chart-values='{{ impact.chart_values|default([], true)|tojson }}'
-                    ></canvas>
+            {% if data.rescued_quantities %}
+                <div class="quantity-list">
+                    {% for item in data.rescued_quantities %}
+                        <div class="quantity-item">
+                            {{ item.quantity }} {{ item.unit }}
+                        </div>
+                    {% endfor %}
                 </div>
+            {% else %}
+                <p class="empty">No collected food quantities yet.</p>
+            {% endif %}
+        </section>
 
+        <section class="section">
+            <h2>Top 3 Food Providers</h2>
+
+            {% if data.top_providers %}
+                <table class="leaderboard">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Provider</th>
+                            <th>Collected Donations</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for provider in data.top_providers %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ provider.name }}</td>
+                                <td>{{ provider.collected_count }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="empty">No provider donation records available yet.</p>
+            {% endif %}
+        </section>
+
+        <section class="section">
+            <h2>Donation Activity</h2>
+
+            <div class="chart-container">
+                <canvas
+                    id="impactChart"
+                    data-labels="{{ data.chart_labels | tojson | forceescape }}"
+                    data-values="{{ data.chart_values | tojson | forceescape }}">
+                </canvas>
             </div>
-        </div>
+        </section>
 
-    </div>
-
-    <!-- Footer -->
-    <footer>
-        <p>
-            MealLoop - Smart Food Rescue and Waste Reduction Platform
+        <p class="note">
+            Note: Verified account counts are shown because the current
+            user model does not have a separate active-status field.
         </p>
-    </footer>
 
     <!-- Chart.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <footer>
+            MealLoop - Smart Food Rescue and Waste Reduction Platform
+        </footer>
 
-    <!-- Donation Chart JavaScript -->
+    </main>
+
+    <script src="{{ url_for('static', filename='vendor/chart.umd.js') }}"></script>
+
     <script>
-        const chartCanvas = document.getElementById("donationChart");
+        const chartElement = document.getElementById("impactChart");
 
-        if (!chartCanvas) {
-            console.warn("Donation chart canvas not found.");
-        } else if (typeof Chart === "undefined") {
-            chartCanvas.insertAdjacentHTML(
-                "afterend",
-                '<p class="text-muted mt-3">Donation chart is unavailable right now.</p>'
-            );
-        } else {
+        if (chartElement && typeof Chart !== "undefined") {
+            const labels = JSON.parse(chartElement.dataset.labels);
+            const values = JSON.parse(chartElement.dataset.values);
 
-            const chartLabels = JSON.parse(
-                chartCanvas.dataset.chartLabels || "[]"
-            );
-
-            const chartValues = JSON.parse(
-                chartCanvas.dataset.chartValues || "[]"
-            );
-
-            const safeLabels = chartLabels.length
-                ? chartLabels
-                : ["No data"];
-
-            const safeValues = chartValues.length
-                ? chartValues
-                : [0];
-
-            new Chart(chartCanvas, {
+            new Chart(chartElement, {
                 type: "bar",
-
                 data: {
-                    labels: safeLabels,
-
+                    labels: labels,
                     datasets: [{
-                        label: "Number of Donations",
-                        data: safeValues,
-                        backgroundColor: "rgba(25, 135, 84, 0.7)",
-                        borderColor: "rgba(25, 135, 84, 1)",
+                        label: "Collected Donations",
+                        data: values,
+                        backgroundColor: "rgba(23, 107, 80, 0.7)",
+                        borderColor: "rgb(23, 107, 80)",
                         borderWidth: 1,
                         borderRadius: 5
                     }]
                 },
-
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-
                     scales: {
                         y: {
                             beginAtZero: true,
-
                             ticks: {
                                 precision: 0
-                            },
-
-                            title: {
-                                display: true,
-                                text: "Number of Donations"
                             }
-                        },
-
-                        x: {
-                            title: {
-                                display: true,
-                                text: "Date"
-                            }
-                        }
-                    },
-
-                    plugins: {
-                        legend: {
-                            display: true
                         }
                     }
                 }

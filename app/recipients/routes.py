@@ -17,6 +17,13 @@ from flask_login import current_user, login_required
 from app.auth.utils import role_required
 from app.extensions import db
 from app.models import Donation, DonationRequest, User
+from app.recipients.directions import directions_url
+from app.recipients.distance import (
+    best_distance_label, has_location, road_distance_enabled,
+    road_distances_km,
+)
+from app.recipients.expiry import expiry_badge
+from app.recipients.mapdata import map_markers, maps_api_key
 
 # Member 3 writes this function. Until it exists, use a stub that
 # returns 0, so the page still works (all donations tie on score).
@@ -123,18 +130,39 @@ def browse_donations():
     )
 
     recipient = current_user._get_current_object()
+
+    # Road distance for ALL donations in one call. If it is switched off
+    # or fails, this stays empty and we show the straight-line distance.
+    road = {}
+    if road_distance_enabled():
+        road = road_distances_km(recipient, [d for d, _ in rows])
+
     items = []
     for donation, provider in rows:
+        # The priority score always uses the straight-line distance
         score = calculate_priority_score(donation, recipient, now=now)
+        label = best_distance_label(
+            recipient, donation, road.get(donation.id))
         items.append(
-            {"donation": donation, "provider": provider, "score": score}
+            {"donation": donation, "provider": provider, "score": score,
+             "distance": label,
+             # Google Maps link (None if we know no destination at all)
+             "directions": directions_url(donation),
+             # Badge text and colour: "Expires in 3h", "Expiring soon"...
+             "expiry": expiry_badge(donation.expiry_time, now=now)}
         )
 
     # Highest score first; if scores tie, the one expiring soonest first
     items.sort(key=lambda i: (-i["score"], i["donation"].expiry_time))
 
+    # The template asks the NGO to add a location if it has none
     return render_template(
-        "recipients/donations.html", verified=True, items=items
+        "recipients/donations.html", verified=True, items=items,
+        ngo_has_location=has_location(recipient),
+        # Map extras: markers for donations with coordinates, and the key
+        # (None if GOOGLE_MAPS_API_KEY is not set, then no map is shown)
+        markers=map_markers(items),
+        maps_api_key=maps_api_key(),
     )
 
 
@@ -217,6 +245,34 @@ def _other_pending(donation_request):
     )
 
 
+def _split_leftover(donation, needed):
+    """If the NGO needs less than the donation holds, keep the rest.
+
+    The accepted donation shrinks to `needed`; the leftover becomes a new
+    available donation (same food, expiry and pickup place), so it shows
+    up on Find Food again. Returns the leftover quantity (0 if none).
+    We treat 1 person to serve as 1 packet.
+    """
+    if needed < 1 or needed >= donation.quantity:
+        return 0
+    leftover_quantity = donation.quantity - needed
+    leftover = Donation(
+        provider_id=donation.provider_id,
+        food_name=donation.food_name,
+        quantity=leftover_quantity,
+        unit=donation.unit,
+        prepared_at=donation.prepared_at,
+        expiry_time=donation.expiry_time,
+        pickup_location=donation.pickup_location,
+        latitude=donation.latitude,
+        longitude=donation.longitude,
+        status="available",
+    )
+    donation.quantity = needed
+    db.session.add(leftover)
+    return leftover_quantity
+
+
 @bp.route("/requests/<int:request_id>/accept", methods=["POST"])
 @role_required("provider")
 def accept_request(request_id):
@@ -234,13 +290,24 @@ def accept_request(request_id):
     donation_request.status = "accepted"
     donation.status = "accepted"
 
-    # Only one NGO gets the food, so reject all other pending requests
+    # Only one NGO gets this food, so reject all other pending requests
     _other_pending(donation_request).update(
         {"status": "rejected"}, synchronize_session=False
     )
+
+    # Partial request: the part nobody asked for goes back on the list
+    unit = donation.unit
+    leftover = _split_leftover(donation, donation_request.people_to_serve)
     db.session.commit()
 
-    flash("Request accepted.", "success")
+    if leftover:
+        flash(
+            f"Request accepted. The remaining {leftover} {unit} are back "
+            "on the Find Food list.",
+            "success",
+        )
+    else:
+        flash("Request accepted.", "success")
     return redirect(PROVIDER_DASHBOARD)
 
 
@@ -331,7 +398,7 @@ def dashboard():
         status = donation_request.status
         counts[status] = counts.get(status, 0) + 1
         items.append(
-            {"req": donation_request, "donation": donation,
+            {"donation": donation, "req": donation_request,
              "provider": provider}
         )
 

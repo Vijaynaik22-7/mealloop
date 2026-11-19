@@ -20,11 +20,18 @@ RUN useradd --create-home appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
+# Commit id of this build. CI passes the real SHA with --build-arg;
+# the app shows it in the footer and at /version.
+ARG GIT_SHA=dev
+ENV BUILD_SHA=$GIT_SHA
+
 EXPOSE 5000
 
 # Docker marks the container "healthy" if /health answers
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" || exit 1
 
-# Run with gunicorn (production server), not the Flask dev server
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "run:app"]
+# 1) seed.py fills an empty database with demo data (skips if users exist).
+#    The ";" means gunicorn still starts even if seeding fails.
+# 2) --preload + 1 worker avoids the two-worker create_all race on SQLite.
+CMD ["sh", "-c", "python seed.py; exec gunicorn --bind 0.0.0.0:5000 --workers 1 --preload run:app"]

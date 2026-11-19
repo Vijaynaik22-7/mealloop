@@ -2,6 +2,14 @@
 {% block title %}Available Donations{% endblock %}
 
 {% block content %}
+<style>
+  /* Map box: fixed height, full width, shorter on phones */
+  #donation-map { width: 100%; height: 360px; }
+  @media (max-width: 576px) {
+    #donation-map { height: 260px; }
+  }
+</style>
+
 <div class="container my-4">
   <h2 class="mb-3">Available Donations</h2>
 
@@ -24,6 +32,34 @@
         to see distances.
       </div>
     {% endif %}
+
+    {# ---------- Map of donations that have coordinates ---------- #}
+    {% if not maps_api_key %}
+      {# No API key set: the page works fine, just without the map #}
+      <div class="alert alert-light border small mb-3">
+        The map is not available right now. Every pickup place is still
+        listed below.
+      </div>
+    {% elif not markers %}
+      {# Key is set but no donation has usable coordinates #}
+      <p class="text-muted small mb-3">
+        None of these donations has a map location yet. They are all
+        listed below.
+      </p>
+    {% else %}
+      <div id="donation-map" class="rounded border mb-2"
+           role="region" aria-label="Map of available donations"></div>
+      {# Shown by the script if Google rejects the key or fails to load #}
+      <div id="donation-map-fallback" class="alert alert-light border small mb-3"
+           style="display: none;">
+        The map could not be loaded. The donations are still listed below.
+      </div>
+      <p id="donation-map-help" class="text-muted small mb-3">
+        Click a marker to see the food and provider. Donations without a
+        map location are listed below only.
+      </p>
+    {% endif %}
+
     <div class="row g-3">
       {% for item in items %}
         {% set d = item.donation %}
@@ -55,6 +91,12 @@
               <p class="mb-3 text-danger">
                 <strong>Expires:</strong>
                 {{ d.expiry_time.strftime("%d %b, %I:%M %p") }}
+                {# Badge: "Expires in 3h" / "Expiring soon" / "Expired" #}
+                {% if item.expiry %}
+                  <span class="badge {{ item.expiry.css }} ms-1">
+                    {{ item.expiry.text }}
+                  </span>
+                {% endif %}
               </p>
 
               {# Opens Google Maps; hidden if we know no destination #}
@@ -83,6 +125,73 @@
         </div>
       {% endfor %}
     </div>
+
+    {# ---------- Google Maps script (only when key AND markers exist) ---------- #}
+    {% if maps_api_key and markers %}
+      <script>
+        // Markers built by app/recipients/mapdata.py (tojson is script-safe)
+        var DONATION_MARKERS = {{ markers|tojson }};
+
+        function showMapFallback() {
+          var map = document.getElementById("donation-map");
+          var note = document.getElementById("donation-map-fallback");
+          var help = document.getElementById("donation-map-help");
+          if (map) { map.style.display = "none"; }
+          if (help) { help.style.display = "none"; }
+          if (note) { note.style.display = "block"; }
+        }
+
+        // Google calls this if the API key is invalid or not allowed here
+        window.gm_authFailure = showMapFallback;
+
+        // Google calls this once the Maps script has loaded
+        function initDonationMap() {
+          var box = document.getElementById("donation-map");
+          if (!box || !window.google || !google.maps) { showMapFallback(); return; }
+
+          var map = new google.maps.Map(box, {
+            center: { lat: DONATION_MARKERS[0].lat, lng: DONATION_MARKERS[0].lng },
+            zoom: 12,
+            mapTypeControl: false,
+            streetViewControl: false
+          });
+          var bounds = new google.maps.LatLngBounds();
+          var info = new google.maps.InfoWindow();
+
+          DONATION_MARKERS.forEach(function (m) {
+            var position = { lat: m.lat, lng: m.lng };
+            var marker = new google.maps.Marker({
+              position: position, map: map, title: m.title
+            });
+            bounds.extend(position);
+
+            marker.addListener("click", function () {
+              // Build with textContent so food/provider names stay plain text
+              var wrap = document.createElement("div");
+              var title = document.createElement("strong");
+              title.textContent = m.title;
+              wrap.appendChild(title);
+              [m.quantity, "From: " + m.provider].forEach(function (line) {
+                wrap.appendChild(document.createElement("br"));
+                wrap.appendChild(document.createTextNode(line));
+              });
+              info.setContent(wrap);
+              info.open({ map: map, anchor: marker });
+            });
+          });
+
+          if (DONATION_MARKERS.length > 1) {
+            map.fitBounds(bounds);
+          } else {
+            map.setCenter(bounds.getCenter());
+            map.setZoom(14);
+          }
+        }
+      </script>
+      <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key|urlencode }}&callback=initDonationMap"
+        onerror="showMapFallback()"></script>
+    {% endif %}
   {% endif %}
 </div>
 {% endblock %}

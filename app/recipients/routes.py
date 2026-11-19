@@ -22,6 +22,8 @@ from app.recipients.distance import (
     best_distance_label, has_location, road_distance_enabled,
     road_distances_km,
 )
+from app.recipients.expiry import expiry_badge
+from app.recipients.mapdata import map_markers, maps_api_key
 
 # Member 3 writes this function. Until it exists, use a stub that
 # returns 0, so the page still works (all donations tie on score).
@@ -145,7 +147,9 @@ def browse_donations():
             {"donation": donation, "provider": provider, "score": score,
              "distance": label,
              # Google Maps link (None if we know no destination at all)
-             "directions": directions_url(donation)}
+             "directions": directions_url(donation),
+             # Badge text and colour: "Expires in 3h", "Expiring soon"...
+             "expiry": expiry_badge(donation.expiry_time, now=now)}
         )
 
     # Highest score first; if scores tie, the one expiring soonest first
@@ -155,6 +159,10 @@ def browse_donations():
     return render_template(
         "recipients/donations.html", verified=True, items=items,
         ngo_has_location=has_location(recipient),
+        # Map extras: markers for donations with coordinates, and the key
+        # (None if GOOGLE_MAPS_API_KEY is not set, then no map is shown)
+        markers=map_markers(items),
+        maps_api_key=maps_api_key(),
     )
 
 

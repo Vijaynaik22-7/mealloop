@@ -17,6 +17,7 @@ from flask_login import current_user, login_required
 from app.auth.utils import role_required
 from app.extensions import db
 from app.models import Donation, DonationRequest, User
+from app.providers.whatsapp import notify_request_accepted
 from app.recipients.directions import directions_url
 from app.recipients.distance import distance_km, distance_label, has_location
 
@@ -281,6 +282,17 @@ def accept_request(request_id):
     leftover = _split_leftover(donation, donation_request.people_to_serve)
     db.session.commit()
 
+    # Send the notification only after the acceptance is committed.
+    # A messaging failure must not undo the accepted donation request.
+    try:
+        notification = notify_request_accepted(
+            donation_request.recipient, donation
+        )
+    except Exception:
+        # Keep the donation accepted even if an unexpected notification
+        # error occurs (for example, a malformed recipient profile).
+        notification = {"status": "error", "url": None}
+
     if leftover:
         flash(
             f"Request accepted. The remaining {leftover} {unit} are back "
@@ -289,6 +301,22 @@ def accept_request(request_id):
         )
     else:
         flash("Request accepted.", "success")
+
+    if notification.get("status") == "sent":
+        flash("WhatsApp notification sent to the NGO.", "success")
+    elif notification.get("status") == "fallback" and notification.get("url"):
+        flash(
+            "WhatsApp is not configured or unavailable. Open this link "
+            "to message the NGO manually: " + notification["url"],
+            "info",
+        )
+    else:
+        flash(
+            "Request accepted, but the WhatsApp notification could not "
+            "be sent. Check the NGO phone number or WhatsApp setup.",
+            "warning",
+        )
+
     return redirect(PROVIDER_DASHBOARD)
 
 

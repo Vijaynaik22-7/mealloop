@@ -465,3 +465,28 @@ def test_edit_donation_updates_coordinates(client, app, provider):
 
         assert donation.latitude == pytest.approx(13.0827)
         assert donation.longitude == pytest.approx(80.2707)
+
+
+def test_provider_expiry_badges():
+    from app.providers.expiry import expiry_badge
+
+    now = datetime(2026, 11, 19, 12, 0)
+
+    assert expiry_badge(now - timedelta(minutes=1), now)["text"] == "Expired"
+    soon = expiry_badge(now + timedelta(minutes=45), now)
+    assert soon["text"] == "Expiring soon · 45m"
+    assert "warning" in soon["css"]
+    later = expiry_badge(now + timedelta(hours=3), now)
+    assert later["text"] == "Expires in 3h"
+    assert later["css"] == "bg-success"
+
+
+def test_provider_dashboard_displays_expiry_badge(client, app, provider):
+    with app.app_context():
+        create_test_donation(provider)
+
+    login(client)
+    response = client.get("/provider/dashboard")
+
+    assert response.status_code == 200
+    assert b"Expires in" in response.data

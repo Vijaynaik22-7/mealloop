@@ -84,6 +84,12 @@
                                 <strong>Expiry:</strong>
                                 {{ donation.expiry_time.strftime('%d %b %Y, %I:%M %p') if donation.expiry_time else 'Not specified' }}
                             </p>
+                            {% if donation.expiry_time %}
+                                {% set expiry = expiry_badge(donation.expiry_time, now=now) %}
+                                <p class="mb-3">
+                                    <span class="badge {{ expiry.css }}">{{ expiry.text }}</span>
+                                </p>
+                            {% endif %}
 
                             <p class="mb-3">
                                 <strong>Pickup location:</strong>

@@ -3,31 +3,33 @@
 
 {% block content %}
 <!-- Hero section -->
-<div class="p-5 mb-4 bg-success-subtle rounded-3 text-center">
-  <h1 class="display-5 fw-bold">Rescue food. Feed people.</h1>
-  <p class="lead">
+<section class="ml-hero text-center mb-5">
+  <span class="ml-pill">Surplus food &rarr; hungry people</span>
+  <h1 class="mb-3">Rescue food. Feed people.</h1>
+  <p class="lead mb-4">
     MealLoop connects canteens, hostels, restaurants and event
     organisers that have <strong>surplus food</strong> with
     <strong>verified NGOs</strong> who can use it before it is wasted.
   </p>
   {% if not current_user.is_authenticated %}
-    <a class="btn btn-success btn-lg me-2"
+    <a class="btn btn-light btn-lg me-2"
        href="{{ url_for('auth.register') }}">Join MealLoop</a>
-    <a class="btn btn-outline-success btn-lg"
+    <a class="btn btn-outline-light btn-lg"
        href="{{ url_for('auth.login') }}">Login</a>
   {% else %}
-    <p class="text-muted">You are logged in. Use the menu above.</p>
+    <p class="mb-0 opacity-75">You are logged in. Use the menu above.</p>
   {% endif %}
-</div>
+</section>
 
 <!-- How it works -->
-<h2 class="h4 text-center mb-3">How it works</h2>
-<div class="row g-3 text-center">
+<h2 class="h3 text-center mb-4">How it works</h2>
+<div class="row g-4 text-center mb-5">
   <div class="col-md-4">
     <div class="card h-100">
-      <div class="card-body">
-        <h3 class="h5">1. Providers list food</h3>
-        <p class="card-text">
+      <div class="card-body p-4">
+        <div class="ml-step-icon">&#127858;</div>
+        <h3 class="h5"><span class="ml-step-num">1.</span> Providers list food</h3>
+        <p class="card-text text-muted">
           A canteen or hostel posts surplus food with quantity,
           expiry time and pickup location.
         </p>
@@ -36,9 +38,10 @@
   </div>
   <div class="col-md-4">
     <div class="card h-100">
-      <div class="card-body">
-        <h3 class="h5">2. Verified NGOs request</h3>
-        <p class="card-text">
+      <div class="card-body p-4">
+        <div class="ml-step-icon">&#129309;</div>
+        <h3 class="h5"><span class="ml-step-num">2.</span> Verified NGOs request</h3>
+        <p class="card-text text-muted">
           Admin-approved NGOs request the food. The most urgent
           and nearest needs get priority.
         </p>
@@ -47,12 +50,42 @@
   </div>
   <div class="col-md-4">
     <div class="card h-100">
-      <div class="card-body">
-        <h3 class="h5">3. Food is collected</h3>
-        <p class="card-text">
+      <div class="card-body p-4">
+        <div class="ml-step-icon">&#9989;</div>
+        <h3 class="h5"><span class="ml-step-num">3.</span> Food is collected</h3>
+        <p class="card-text text-muted">
           The provider accepts a request, the NGO collects the food,
           and our Impact page shows meals saved.
         </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Who is it for -->
+<h2 class="h3 text-center mb-4">Built for three kinds of people</h2>
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card h-100 ml-role-card">
+      <div class="card-body p-4">
+        <h3 class="h5">Providers</h3>
+        <p class="text-muted mb-0">List leftover food in a minute and see who is coming to collect it.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 ml-role-card ml-orange">
+      <div class="card-body p-4">
+        <h3 class="h5">NGOs</h3>
+        <p class="text-muted mb-0">Find nearby food ranked by urgency, distance and your capacity.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 ml-role-card">
+      <div class="card-body p-4">
+        <h3 class="h5">Admins</h3>
+        <p class="text-muted mb-0">Verify every NGO so food only goes to trusted organisations.</p>
       </div>
     </div>
   </div>

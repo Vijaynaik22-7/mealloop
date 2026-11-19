@@ -17,6 +17,7 @@ from flask_login import current_user, login_required
 from app.auth.utils import role_required
 from app.extensions import db
 from app.models import Donation, DonationRequest, User
+from app.recipients.distance import distance_km, distance_label, has_location
 
 # Member 3 writes this function. Until it exists, use a stub that
 # returns 0, so the page still works (all donations tie on score).
@@ -126,15 +127,20 @@ def browse_donations():
     items = []
     for donation, provider in rows:
         score = calculate_priority_score(donation, recipient, now=now)
+        # Straight-line distance text, or "distance unknown"
+        km = distance_km(recipient, donation)
         items.append(
-            {"donation": donation, "provider": provider, "score": score}
+            {"donation": donation, "provider": provider, "score": score,
+             "distance": distance_label(km)}
         )
 
     # Highest score first; if scores tie, the one expiring soonest first
     items.sort(key=lambda i: (-i["score"], i["donation"].expiry_time))
 
+    # The template asks the NGO to add a location if it has none
     return render_template(
-        "recipients/donations.html", verified=True, items=items
+        "recipients/donations.html", verified=True, items=items,
+        ngo_has_location=has_location(recipient),
     )
 
 

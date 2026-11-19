@@ -31,6 +31,38 @@ pip install -r requirements.txt
 python run.py                   # open http://localhost:5000/health
 ```
 
+## Google Maps (optional)
+
+The Find Food page (`/recipient/donations`) shows a map of available donations
+when a Google Maps key is set. Without a key the page works as normal, just
+without the map.
+
+1. In Google Cloud, create an API key and enable the **Maps JavaScript API**
+   (Google may ask for a billing account).
+2. Restrict the key to your site's URLs (HTTP referrers), for example
+   `http://127.0.0.1:5000/*` and `http://localhost:5000/*` for local work.
+3. Set it before starting the app. Never commit the key to the repo, and
+   never put it in the Dockerfile (it would be stored inside the image).
+
+```bash
+export GOOGLE_MAPS_API_KEY="your-key"      # Git Bash / macOS / Linux
+python run.py
+```
+
+```text
+set GOOGLE_MAPS_API_KEY=your-key           (Windows cmd)
+$env:GOOGLE_MAPS_API_KEY = "your-key"      (Windows PowerShell)
+```
+
+With Docker, pass the key when you start the container:
+
+```bash
+docker build -t mealloop .
+docker run -p 5000:5000 -e GOOGLE_MAPS_API_KEY="your-key" mealloop
+```
+
+On Render, add `GOOGLE_MAPS_API_KEY` under the service's Environment settings.
+
 ## Run tests and lint
 
 ```bash

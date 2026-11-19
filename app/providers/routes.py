@@ -1,3 +1,6 @@
+
+import math
+import os
 from datetime import datetime
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash
@@ -29,6 +32,49 @@ def get_provider_donation(donation_id):
     ).first_or_404()
 
     return donation
+
+
+# Read and validate optional latitude and longitude fields.
+def get_optional_coordinates():
+
+    latitude_value = request.form.get('latitude', '').strip()
+    longitude_value = request.form.get('longitude', '').strip()
+
+    # Coordinates are optional. Both can be left empty.
+    if not latitude_value and not longitude_value:
+        return None, None
+
+    # Both coordinates must be provided together.
+    if not latitude_value or not longitude_value:
+        raise ValueError(
+            'Please provide both latitude and longitude.'
+        )
+
+    try:
+        latitude = float(latitude_value)
+        longitude = float(longitude_value)
+    except ValueError:
+        raise ValueError(
+            'Latitude and longitude must be valid numbers.'
+        )
+
+    # Reject NaN and infinity.
+    if not math.isfinite(latitude) or not math.isfinite(longitude):
+        raise ValueError(
+            'Latitude and longitude must be valid numbers.'
+        )
+
+    if not -90 <= latitude <= 90:
+        raise ValueError(
+            'Latitude must be between -90 and 90.'
+        )
+
+    if not -180 <= longitude <= 180:
+        raise ValueError(
+            'Longitude must be between -180 and 180.'
+        )
+
+    return latitude, longitude
 
 
 # Provider Dashboard
@@ -76,6 +122,12 @@ def create_donation():
             return redirect(url_for('provider.create_donation'))
 
         try:
+            latitude, longitude = get_optional_coordinates()
+        except ValueError as error:
+            flash(str(error), 'danger')
+            return redirect(url_for('provider.create_donation'))
+
+        try:
             quantity = int(quantity)
             if quantity <= 0:
                 raise ValueError
@@ -105,6 +157,8 @@ def create_donation():
             prepared_at=prepared_at,
             expiry_time=expiry_time,
             pickup_location=pickup_location,
+            latitude=latitude,
+            longitude=longitude,
             status='available'
         )
 
@@ -115,7 +169,10 @@ def create_donation():
 
         return redirect(url_for('provider.dashboard'))
 
-    return render_template('providers/create.html')
+    return render_template(
+        'providers/create.html',
+        google_maps_api_key=os.environ.get('GOOGLE_MAPS_API_KEY')
+    )
 
 
 # Edit Donation
@@ -150,6 +207,15 @@ def edit_donation(donation_id):
             prepared_at, expiry_time, pickup_location
         ]):
             flash('Please fill in all fields.', 'danger')
+            return redirect(
+                url_for('provider.edit_donation',
+                        donation_id=donation.id)
+            )
+
+        try:
+            latitude, longitude = get_optional_coordinates()
+        except ValueError as error:
+            flash(str(error), 'danger')
             return redirect(
                 url_for('provider.edit_donation',
                         donation_id=donation.id)
@@ -192,6 +258,8 @@ def edit_donation(donation_id):
         donation.prepared_at = prepared_at
         donation.expiry_time = expiry_time
         donation.pickup_location = pickup_location
+        donation.latitude = latitude
+        donation.longitude = longitude
 
         db.session.commit()
 
@@ -201,7 +269,8 @@ def edit_donation(donation_id):
 
     return render_template(
         'providers/edit.html',
-        donation=donation
+        donation=donation,
+        google_maps_api_key=os.environ.get('GOOGLE_MAPS_API_KEY')
     )
 
 

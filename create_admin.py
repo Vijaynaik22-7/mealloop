@@ -40,8 +40,10 @@ def main():
             return 1
 
         if user is not None:
-            # Already an admin: just reset the password
+            # Already an admin: reset the password and make sure the
+            # email counts as verified (needed when OTP_ENABLED=true)
             user.set_password(password)
+            user.email_verified = True
             db.session.commit()
             print(f"Admin {email} already existed. Password updated.")
             return 0
@@ -50,7 +52,8 @@ def main():
             name=args.name,
             email=email,
             role="admin",
-            is_verified=True,  # admins are always verified
+            is_verified=True,   # admins are always verified
+            email_verified=True,  # script users skip the email OTP
         )
         admin.set_password(password)
         db.session.add(admin)

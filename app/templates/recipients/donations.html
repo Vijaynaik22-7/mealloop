@@ -16,6 +16,14 @@
       No donations are available right now. Please check back soon.
     </div>
   {% else %}
+    {# The NGO has no coordinates, so we cannot work out distances #}
+    {% if not ngo_has_location %}
+      <div class="alert alert-info">
+        Add your location in your
+        <a href="{{ url_for('recipients.edit_profile') }}">profile</a>
+        to see distances.
+      </div>
+    {% endif %}
     <div class="row g-3">
       {% for item in items %}
         {% set d = item.donation %}
@@ -36,6 +44,9 @@
               </p>
               <p class="mb-1">
                 <strong>Pickup:</strong> {{ d.pickup_location }}
+              </p>
+              <p class="mb-1">
+                <strong>Distance:</strong> {{ item.distance }}
               </p>
               <p class="mb-1">
                 <strong>Prepared:</strong>

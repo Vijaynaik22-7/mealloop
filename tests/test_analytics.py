@@ -46,8 +46,8 @@ def create_donation(provider, name, quantity, unit="meals"):
         food_name=name,
         quantity=quantity,
         unit=unit,
-        prepared_at=datetime.utcnow() - timedelta(hours=2),
-        expiry_time=datetime.utcnow() + timedelta(hours=5),
+        prepared_at=datetime.now() - timedelta(hours=2),
+        expiry_time=datetime.now() + timedelta(hours=5),
         status="collected"
     )
     db.session.add(donation)

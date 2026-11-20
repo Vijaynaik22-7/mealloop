@@ -23,7 +23,7 @@ def app():
 
 def make_donation(provider_id, status, hours_from_now):
     """A donation that expires `hours_from_now` hours from now."""
-    now = datetime.utcnow()
+    now = datetime.now()
     return Donation(
         provider_id=provider_id, food_name="Rice", quantity=20,
         unit="packets", prepared_at=now - timedelta(hours=3),

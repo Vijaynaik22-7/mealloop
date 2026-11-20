@@ -12,11 +12,12 @@ def expiry_badge(expiry_time, now=None):
     - under 2 hours left:  "Expiring soon"
     - otherwise:           "Expires in 3h" (whole hours, rounded down)
 
-    `now` uses UTC, the same clock the Find Food list uses to hide
-    expired food, so the badge never disagrees with the list.
+    `now` uses the system clock (datetime.now(), local time). The provider
+    forms save expiry times in that same local time, and the Find Food list
+    uses it too, so the badge never disagrees with them.
     """
     if now is None:
-        now = datetime.utcnow()
+        now = datetime.now()
     remaining = expiry_time - now
     if remaining <= timedelta(0):
         return {"text": "Expired", "css": "bg-secondary"}

@@ -39,7 +39,7 @@ def calculate_priority_score(donation, recipient, now=None):
     """Calculate donation priority score between 0 and 100."""
 
     if now is None:
-        now = datetime.utcnow()
+        now = datetime.now()
 
     if donation.expiry_time <= now:
         return 0.0
@@ -108,7 +108,7 @@ def expire_old_donations(db_session, now=None):
     """
 
     if now is None:
-        now = datetime.utcnow()
+        now = datetime.now()
 
     expired_ids = [
         row.id

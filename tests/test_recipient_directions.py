@@ -46,7 +46,7 @@ def make_user(app, name, role):
 def make_donation(app, provider_id, name, pos=None, pickup="Main Canteen"):
     """Create an available donation; pos is (latitude, longitude)."""
     lat, lng = pos if pos else (None, None)
-    now = datetime.utcnow()
+    now = datetime.now()
     with app.app_context():
         donation = Donation(
             provider_id=provider_id, food_name=name, quantity=10,

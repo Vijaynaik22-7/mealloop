@@ -1,4 +1,6 @@
 """Tests for the expiry badge and the map on the Find Food page (PR C)."""
+import os
+import time
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 
@@ -52,7 +54,7 @@ def make_donation(app, provider_id, name, pos=None,
                   expires_in=timedelta(hours=5, minutes=30)):
     """Create an available donation; pos is (latitude, longitude)."""
     lat, lng = pos if pos else (None, None)
-    now = datetime.utcnow()
+    now = datetime.now()
     with app.app_context():
         donation = Donation(
             provider_id=provider_id, food_name=name, quantity=10,
@@ -204,3 +206,42 @@ def test_page_only_marks_donations_that_have_coordinates(app, monkeypatch):
     page = get_page(app, ngo)
     assert page.count('"lat"') == 1    # one marker, both cards listed
     assert "RiceOne" in page and "RiceTwo" in page
+
+
+# ---------------------------------------- expiry uses the system clock
+
+@pytest.fixture()
+def ist_clock():
+    """Run with the system clock in IST (UTC+5:30), where local time and
+    UTC differ by 5.5 hours. Providers save expiry times in local time."""
+    if not hasattr(time, "tzset"):
+        pytest.skip("time.tzset is not available on Windows")
+    old = os.environ.get("TZ")
+    os.environ["TZ"] = "Asia/Kolkata"
+    time.tzset()
+    yield
+    if old is None:
+        os.environ.pop("TZ", None)
+    else:
+        os.environ["TZ"] = old
+    time.tzset()
+
+
+def test_expiry_badge_follows_system_time(app, ist_clock):
+    provider = make_user(app, "Provider", "provider")
+    ngo = make_user(app, "Ngo", "recipient")
+    make_donation(app, provider, "SoonRice",
+                  expires_in=timedelta(minutes=45))
+    page = get_page(app, ngo)
+    assert "SoonRice" in page
+    assert "Expiring soon" in page      # not "Expires in 6h"
+
+
+def test_food_past_expiry_in_system_time_is_hidden(app, ist_clock):
+    provider = make_user(app, "Provider", "provider")
+    ngo = make_user(app, "Ngo", "recipient")
+    make_donation(app, provider, "OldRice", expires_in=timedelta(hours=-1))
+    make_donation(app, provider, "FreshDal")
+    page = get_page(app, ngo)
+    assert "FreshDal" in page
+    assert "OldRice" not in page

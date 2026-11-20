@@ -64,7 +64,7 @@ def seed_demo_data():
     db.session.add_all([admin, canteen, ngo_ok, ngo_pending])
     db.session.commit()  # commit first so the ids exist
 
-    now = datetime.utcnow()
+    now = datetime.now()
     donations = [
         # (food, quantity, unit, hours until expiry)
         ("Vegetable biryani", 40, "plates", 3),

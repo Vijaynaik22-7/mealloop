@@ -26,7 +26,7 @@ def make_case(app, quantity, people):
 
     Returns (provider_id, donation_id, request_id).
     """
-    now = datetime.utcnow()
+    now = datetime.now()
     with app.app_context():
         provider = User(
             name="Provider", email="p@test.com", role="provider",

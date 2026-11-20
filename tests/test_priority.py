@@ -53,7 +53,7 @@ def test_distance_same_location():
 
 
 def test_expired_donation_score_is_zero():
-    now = datetime.utcnow()
+    now = datetime.now()
 
     donation = make_donation(now)
     donation.expiry_time = now - timedelta(hours=1)
@@ -68,7 +68,7 @@ def test_expired_donation_score_is_zero():
 
 
 def test_score_is_between_zero_and_hundred():
-    now = datetime.utcnow()
+    now = datetime.now()
 
     donation = make_donation(now)
     recipient = make_recipient()
@@ -81,7 +81,7 @@ def test_score_is_between_zero_and_hundred():
 
 
 def test_near_recipient_gets_higher_score():
-    now = datetime.utcnow()
+    now = datetime.now()
 
     donation = make_donation(now)
 
@@ -107,7 +107,7 @@ def test_near_recipient_gets_higher_score():
 
 
 def test_urgent_donation_gets_higher_score():
-    now = datetime.utcnow()
+    now = datetime.now()
 
     urgent_donation = make_donation(
         now,
@@ -133,7 +133,7 @@ def test_urgent_donation_gets_higher_score():
 
 
 def test_better_capacity_fit_gets_higher_score():
-    now = datetime.utcnow()
+    now = datetime.now()
 
     donation = make_donation(
         now,
@@ -160,7 +160,7 @@ def test_better_capacity_fit_gets_higher_score():
 
 
 def test_missing_coordinates():
-    now = datetime.utcnow()
+    now = datetime.now()
 
     donation = make_donation(
         now,
@@ -187,7 +187,7 @@ def test_expire_old_donations():
     with app.app_context():
         db.create_all()
 
-        now = datetime.utcnow()
+        now = datetime.now()
 
         provider = User(
             name="Test Provider",

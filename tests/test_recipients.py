@@ -54,7 +54,7 @@ def make_user(app, name, role, verified=True, capacity=50):
 
 
 def make_donation(app, provider_id, name, hours=3, status="available"):
-    now = datetime.utcnow()
+    now = datetime.now()
     with app.app_context():
         donation = Donation(
             provider_id=provider_id, food_name=name, quantity=10,
